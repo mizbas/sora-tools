@@ -9,7 +9,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="app.css?v=mwoq5m2i">
+<link rel="stylesheet" href="app.css?v=mwoq9niq">
 <style>
 .bar{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.94);-webkit-backdrop-filter:saturate(180%) blur(12px);backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 10px) 0 10px}
 .bar .in{max-width:600px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:10px}
@@ -73,7 +73,7 @@
   </div>
 </div>
 
-<script src="crypto.js?v=mwoq5m2i"></script>
+<script src="crypto.js?v=mwoq9niq"></script>
 <script>
 const CATALOG = [{"id":"nenshu-kabe","status":"live","icon":"🧱","title":"年収の壁シミュレーター 2026","desc":"時給と週の労働時間から、本人と世帯の手取りを計算。扶養内の最大・働き損ゾーン・壁を越えて元が取れる時間がひと目でわかります。","tags":["パート・共働き","2026年10月の社保改正対応"],"price":"500円","note":"https://note.com/tmsora8496/n/nfd3142db6a53"},{"id":"nencho","status":"live","icon":"🧾","title":"年末調整かんたんナビ 2026","desc":"保険料控除申告書・配偶者控除等申告書の「どの欄に何円書くか」を自動計算。競艇・競馬の払戻金があるときの確定申告の要否と増える税額もわかります。","tags":["会社員","令和8年分対応","競艇・競馬の払戻金"],"price":"500円","note":"https://note.com/tmsora8496/n/n3b444a1d04a2"},{"id":"furusato","status":"live","icon":"🎁","title":"ふるさと納税 上限額シミュレーター 2026","desc":"給与明細の数字から、2026年の寄附の上限を計算。住宅ローン控除・医療費控除・iDeCoとの兼ね合いや、ワンストップ特例と確定申告で自己負担がどう変わるかまでわかります。","tags":["会社員","2026年の寄附","年末調整ナビから読込"],"price":"500円","note":"https://note.com/tmsora8496"},{"id":"nisa-waku","status":"soon","icon":"📈","title":"新NISA 枠管理（家族4人分）","desc":"家族それぞれの「今年あといくら買えるか」と、売却後に翌年戻る生涯枠を自動で計算。こどもNISA（2027年〜）にも対応予定。","tags":["資産管理"],"price":"500円","note":"https://note.com/tmsora8496"}];
 const SITE = {"salt":"b8j/k89hxRTcldfUHYJOqA==","iter":200000};
@@ -104,7 +104,7 @@ async function loadFiles() {
   if (files) return files;
   files = {};
   for (const t of CATALOG.filter(t => t.status === "live")) {
-    files[t.id] = await (await fetch("tools/" + t.id + ".json?v=mwoq5m2i")).json();
+    files[t.id] = await (await fetch("tools/" + t.id + ".json?v=mwoq9niq")).json();
   }
   return files;
 }
