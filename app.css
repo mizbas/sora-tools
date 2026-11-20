@@ -114,3 +114,16 @@ tr.em td:last-child{color:var(--primary)}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media print{header,.hero,.inputs,.actions,.no-print{display:none!important}body{background:#fff}.card{border:none;padding:0}}
+
+/* タップしやすい「?」 */
+.qbtn{width:22px;height:22px;line-height:19px;font-size:12px;position:relative}
+.qbtn::after{content:"";position:absolute;inset:-11px}
+/* 金額の読みやすい表示 */
+.field .inp input{display:block}
+.bigview{position:fixed;inset:0;z-index:60;background:#fff;overflow:auto;padding:calc(env(safe-area-inset-top) + 12px) 18px 24px}
+.bigview .in{max-width:520px;margin:0 auto}
+.bigview h2{font-size:18px;margin:6px 0 2px}
+.bigview .d{font-size:12px;color:var(--faint);margin-bottom:12px}
+.bigview h3{font-size:13px;color:var(--sub);margin:16px 0 4px}
+.bigview td{font-size:14px;padding:8px 0}
+.bigview .close{position:sticky;top:0;float:right;font:inherit;font-size:15px;font-weight:600;border:0;background:none;color:var(--primary);padding:4px 0}
