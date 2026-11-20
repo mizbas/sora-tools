@@ -68,6 +68,11 @@
 .slip-row.est input{background:#fff;border:1px dashed var(--line);color:var(--faint)}
 .slip-sep{font-size:12px;font-weight:700;color:var(--sub);padding:12px 0 4px}
 .slip-opt{display:flex;align-items:center;gap:8px;font-size:13px;padding:10px 0 2px}
+.slip-ot{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.slip-ot label{font-size:13px;font-weight:600}
+.slip-ot small{display:block;font-size:11px;color:var(--faint);font-weight:400;margin-top:2px;line-height:1.4}
+.slip-ot input{width:100%}
+.slip-ot .inp{width:100%}
 .slip-sum{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
 .slip-sum .in{max-width:600px;margin:0 auto}
 .slip-sum table{font-size:13px;margin-bottom:10px}
@@ -95,7 +100,11 @@
           ${rows}
           <div class="slip-sep">賞与（ボーナス）</div>
           ${brows}
-          <label class="slip-opt"><input type="checkbox" id="slipDec" ${d.decSame ? "checked" : ""}> 未入力の月は、入力済みの最後の月と同じ額で見込む</label>
+          <label class="slip-opt"><input type="checkbox" id="slipDec" ${d.decSame ? "checked" : ""}> 未入力の月は、入力済みの最後の月をもとに見込む</label>
+          <div id="slipOt">
+            <div class="slip-ot"><label><span id="otLastLabel">最後の月</span>の残業代<small>明細の「割増手当」「残業手当」などの合計</small></label><input type="number" inputmode="numeric" step="100" id="otLast" value="${d.otLast || ""}"></div>
+            <div class="slip-ot"><label>見込む月の残業代（1か月あたり）<small>残業がなければ0。基本給・手当は最後の月と同じで計算します</small></label><input type="number" inputmode="numeric" step="100" id="otEst" value="${d.otEst || ""}"></div>
+          </div>
         </div>
       </div>
       <div class="slip-sum"><div class="in"><table id="slipTotal"></table><button class="btn" type="button" data-apply style="width:100%">この合計を入力する</button></div></div>`;
@@ -106,15 +115,23 @@
       const last = filled.lastIndexOf(true);
       let pay = 0, si = 0, tax = 0, est = 0;
       d.months.forEach((m, i) => {
-        let src = m;
-        if (!filled[i] && d.decSame && last >= 0 && i > last) { src = d.months[last]; est++; }
-        pay += num(src.pay); si += num(src.si); tax += num(src.tax);
+        if (!filled[i] && d.decSame && last >= 0 && i > last) {
+          const L = d.months[last], lp = num(L.pay);
+          const ep = Math.max(0, lp - num(d.otLast) + num(d.otEst));
+          const base = lp - num(L.si), eb = ep - num(L.si);
+          pay += ep; si += num(L.si); tax += base > 0 ? Math.round(num(L.tax) * Math.max(0, eb) / base / 10) * 10 : num(L.tax); est++;
+          return;
+        }
+        pay += num(m.pay); si += num(m.si); tax += num(m.tax);
       });
       d.bonus.forEach(b => { pay += num(b.pay); si += num(b.si); tax += num(b.tax); });
       return { pay, si, tax, est, last };
     }
     function paint() {
       const t = totals();
+      const showOt = d.decSame && t.last >= 0 && t.last < 11;
+      el.querySelector("#slipOt").style.display = showOt ? "" : "none";
+      if (showOt) el.querySelector("#otLastLabel").textContent = (t.last + 1) + "月";
       el.querySelectorAll(".slip-row[data-m]").forEach((r, i) => r.classList.toggle("est", d.decSame && t.last >= 0 && i > t.last && !(num(d.months[i].pay) > 0)));
       el.querySelector("#slipTotal").innerHTML =
         `<tr><td>給与・賞与の合計${t.est ? `（${t.est}か月分は見込み）` : ""}</td><td>${yen(t.pay)}円</td></tr>
@@ -122,9 +139,10 @@
          <tr><td>所得税の合計</td><td>${yen(t.tax)}円</td></tr>`;
     }
     el.addEventListener("input", e => {
-      const i = e.target.dataset; if (!i.k) return;
+      const i = e.target.dataset; if (!i.k || !d[i.k]) return;
       d[i.k][+i.i][i.f] = e.target.value === "" ? "" : Number(e.target.value); store(SLIP, d); paint();
     });
+    ["otLast", "otEst"].forEach(id => el.querySelector("#" + id).addEventListener("input", e => { d[id] = e.target.value === "" ? "" : Number(e.target.value); store(SLIP, d); paint(); }));
     el.querySelector("#slipDec").onchange = e => { d.decSame = e.target.checked; store(SLIP, d); paint(); };
     const close = () => { el.remove(); document.body.style.overflow = ""; };
     el.querySelector("[data-x]").onclick = close;
