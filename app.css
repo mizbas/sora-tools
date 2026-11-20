@@ -113,6 +113,10 @@ tr.em td:last-child{color:var(--primary)}
 .faq .a b{color:var(--ink);font-weight:700}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.follow{margin:28px 0 8px;padding:16px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);display:flex;flex-direction:column;gap:12px}
+.follow b{display:block;font-size:14.5px;margin-bottom:4px}
+.follow span{display:block;font-size:13px;color:var(--sub);line-height:1.65}
+.follow a{align-self:flex-start;font-size:14px;font-weight:700;text-decoration:none;color:#fff;background:var(--primary);border-radius:var(--r-sm);padding:10px 16px}
 @media print{header,.hero,.inputs,.actions,.no-print{display:none!important}body{background:#fff}.card{border:none;padding:0}}
 
 /* タップしやすい「?」 */

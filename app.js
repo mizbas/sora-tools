@@ -150,5 +150,17 @@
     paint();
   }
 
+  // ---- noteのフォロー案内（各ツールの一番下）----
+  const NOTE_URL = "https://note.com/tmsora8496";
+  function followCard() {
+    const wrap = document.querySelector(".wrap");
+    if (!wrap || document.getElementById("soraFollow")) return;
+    const d = document.createElement("aside");
+    d.id = "soraFollow"; d.className = "follow no-print";
+    d.innerHTML = '<div><b>新しいツールはnoteでお知らせしています</b><span>税金や手続きのルールが変わったときの更新情報も、noteに書いています。</span></div><a href="' + NOTE_URL + '" target="_blank" rel="noopener">noteでフォローする</a>';
+    wrap.appendChild(d);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", followCard); else followCard();
+
   window.SoraUI = { readable, refresh, payslip, saveShared, getShared };
 })();
