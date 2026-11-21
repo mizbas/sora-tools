@@ -131,3 +131,4 @@ tr.em td:last-child{color:var(--primary)}
 .bigview h3{font-size:13px;color:var(--sub);margin:16px 0 4px}
 .bigview td{font-size:14px;padding:8px 0}
 .bigview .close{position:sticky;top:0;float:right;font:inherit;font-size:15px;font-weight:600;border:0;background:none;color:var(--primary);padding:4px 0}
+html,body{overflow-x:clip}
