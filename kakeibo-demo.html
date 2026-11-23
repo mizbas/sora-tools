@@ -175,6 +175,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   <!-- ホーム -->
   <section class="view on" id="v-home">
     <div class="mnav"><button type="button" data-m="-1" aria-label="前の月">‹</button><b id="mLabel"></b><button type="button" data-m="1" aria-label="次の月">›</button></div>
+    <div id="syncBar"></div>
     <div id="fxAlert"></div>
     <div class="sum" id="sum"></div>
     <section class="card" id="catCard"><h2>カテゴリ別の支出</h2><div id="cats"></div></section>
@@ -561,8 +562,28 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const it = suggest(s).items.find(x => x.type === type && x.item && d === x.item.toLowerCase());
     return it ? it.cat : (type === "income" ? "その他の収入" : "その他");
   }
+  // 元の家計簿（nekologytm）のバックアップCSV：id,date,type,amount,quantity,category,description,shop_name,receipt_id,unit_type,unit_value…
+  function nekoCSV(s, rows) {
+    const h = rows[0].map(x => x.trim().toLowerCase()), ix = k => h.indexOf(k);
+    const iD = ix("date"), iT = ix("type"), iA = ix("amount"), iC = ix("category"), iId = ix("id"), iQ = ix("quantity"), iDe = ix("description"), iS = ix("shop_name"), iR = ix("receipt_id"), iU = ix("unit_type"), iV = ix("unit_value");
+    const have = {}; (s.tx || []).forEach(t => { have[t.id] = 1; });
+    const items = [];
+    rows.slice(1).forEach(r => {
+      const date = toDate(r[iD]); if (!date) return;
+      const amount = Math.round(Math.abs(num(r[iA]))); if (!amount) return;
+      const type = String(r[iT] || "").trim() === "income" ? "income" : "expense";
+      const oid = iId >= 0 && r[iId] ? String(r[iId]).trim() : date + "_" + amount + "_" + (iDe >= 0 ? r[iDe] : "");
+      const id = "nk_" + oid.replace(/[^\w\-]/g, "").slice(0, 40), rcp = iR >= 0 && r[iR] ? "nk_r" + String(r[iR]).replace(/[^\w\-]/g, "").slice(0, 40) : id;
+      const ut = iU >= 0 ? String(r[iU] || "").trim() : "", uv = iV >= 0 ? num(r[iV]) : 0;
+      items.push({ id, rid: rcp, date, type, amount, cat: (iC >= 0 && String(r[iC] || "").trim()) || (type === "income" ? "その他の収入" : "その他"), item: iDe >= 0 ? String(r[iDe] || "").replace(/\s*\(自動登録\)$/, "").trim() : "", shop: iS >= 0 ? String(r[iS] || "").trim() : "", qty: Math.max(1, Math.round(num(iQ >= 0 ? r[iQ] : 1)) || 1), uval: uv > 0 ? uv : 0, utype: uv > 0 ? (/ml/i.test(ut) ? "mL" : ut === "個" ? "個" : "g") : "", dup: !!have[id], nk: true });
+    });
+    return { ok: items.length > 0, nk: true, items, msg: items.length ? "" : "取り込める行がありませんでした。" };
+  }
+  const isNeko = rows => { const h = (rows[0] || []).map(x => x.trim().toLowerCase()); return ["date", "type", "amount", "category"].every(k => h.includes(k)); };
   function importCSV(s, text) {
-    const rows = parseCSV(text), c = detect(rows);
+    const rows = parseCSV(text);
+    if (isNeko(rows)) return nekoCSV(s, rows);
+    const c = detect(rows);
     if (!c) return { ok: false, items: [], msg: "日付と金額の列が見つかりませんでした。" };
     const have = {}; live(s.tx).forEach(t => { have[t.date + "|" + t.amount + "|" + (t.item || t.shop)] = 1; });
     const items = [], body = rows.slice(c.header + 1);
@@ -604,7 +625,14 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     COLS.forEach(k => { const r = mergeCol(L[k], R ? R[k] : [], t); out[k] = r.list; if (r.cl) changedLocal = true; if (r.cr) changedRemote = true; });
     return { state: out, changedLocal, changedRemote };
   }
-  const packDrive = s => JSON.stringify({ app: "sora-kakeibo", v: 1, savedAt: Date.now(), data: s });
+  // ドライブに保存するときは、空の項目を省いて小さくする（読み込み時に norm で戻る）
+  const DEF = { type: "expense", qty: 1, memo: "", shop: "", by: "", disc: 0, uval: 0, utype: "", item: "" };
+  function compact(s) {
+    const o = Object.assign({}, s);
+    o.tx = (s.tx || []).map(t => { const x = {}; Object.keys(t).forEach(k => { const v = t[k]; if (v === undefined || v === null || (k in DEF && v === DEF[k]) || (k === "rid" && v === t.id) || v === false) return; x[k] = v; }); return x; });
+    return o;
+  }
+  const packDrive = s => JSON.stringify({ app: "sora-kakeibo", v: 1, savedAt: Date.now(), data: compact(s) });
   function unpackDrive(text) {
     if (!text || !String(text).trim()) return null;
     const j = JSON.parse(text); if (!j || j.app !== "sora-kakeibo") throw new Error("このファイルは家計簿のデータではありません。");
@@ -620,7 +648,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, catDetail, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -632,7 +660,8 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   const DEMO = true, BUY = "https://note.com/tmsora8496/n/n76c5e7c5bfd1";
   let S; try { S = DEMO ? sample() : K.norm(JSON.parse(localStorage.getItem(KEY) || "null")); } catch (e) { S = K.norm(null); }
   let P = {}; try { P = DEMO ? { name: "そら" } : JSON.parse(localStorage.getItem(PKEY) || "{}") || {}; } catch (e) { P = {}; }
-  const save = () => { if (DEMO) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast("保存できませんでした（端末の空き容量を確認してください）"); } };
+  const save = () => { if (DEMO) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast("保存できませんでした（端末の空き容量を確認してください）"); }
+    try { if (typeof D === "object" && D.fileId && !D.dirty) { D.dirty = true; dsave(); } } catch (e) {} };
   const psave = () => { if (DEMO) return; try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {} };
   // お試し版の見本データ（今月と過去11か月）
   function sample() {
@@ -719,8 +748,17 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
 
   // ---- ホーム ----
   document.querySelectorAll(".mnav button").forEach(b => b.onclick = () => { ym = K.addYm(ym, Number(b.dataset.m)); renderHome(); });
+  // まだドライブに保存していない変更があるときのお知らせ
+  function drawSyncBar() {
+    const el = $("syncBar"); if (!el) return;
+    let ok = false; try { ok = !DEMO && typeof D === "object" && D.fileId && (D.dirty || D.err); } catch (e) {}
+    if (!ok) { el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="alert ${D.err ? "ng" : "info"}" style="display:flex;gap:10px;align-items:center"><span style="flex:1">${D.err ? "Googleドライブへの保存に失敗しています。" : "まだGoogleドライブに保存していない変更があります。"}${D.last ? `<br><small>最後の保存：${new Date(D.last).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</small>` : ""}</span><button type="button" class="ghostb" id="syncBarBtn" style="flex:none">今すぐ保存</button></div>`;
+    $("syncBarBtn").onclick = () => { el.querySelector(".alert").style.opacity = ".6"; syncNow(); };
+  }
   function renderHome() {
     $("mLabel").textContent = mLabel(ym);
+    drawSyncBar();
     const fsum = K.fixedSummary(S, today()), soon = fsum.trials.filter(t => t.left <= 14);
     $("fxAlert").innerHTML = soon.map(t => `<div class="alert ${t.left <= 3 ? "ng" : "info"}"><strong>${esc(t.name)}の無料期間があと${t.left}日（${md(t.trialEnd)}まで）</strong>続けないなら、それまでに解約を。続けるなら${yen(t.amount)}が${t.cycle === "year" ? "毎年" : "毎月"}かかります。</div>`).join("");
     const m = K.month(S, ym), cur = ym === today().slice(0, 7), day = cur ? Number(today().slice(8)) : m.days;
@@ -1217,7 +1255,25 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const r = K.importCSV(S, text);
     if (!r.ok) { $("csvPrev").innerHTML = `<div class="alert ng">${esc(r.msg)}「日付」「金額」の列があるCSVか確認してください。</div>`; return; }
     IMP = r.items.map(x => Object.assign({ on: !x.dup, cat0: x.cat }, x));
+    if (r.nk) return drawNeko();
     drawPrev();
+  }
+  // 元の家計簿のバックアップ：一覧は出さず、まとめて確認してから取り込む
+  const keyOf = t => t.date + "|" + t.amount + "|" + String(t.item || "").replace(/\s*\(自動登録\)$/, "").trim();
+  function drawNeko() {
+    const add = IMP.filter(x => !x.dup), dates = add.map(x => x.date).sort(), cs = {};
+    add.forEach(x => { const have = K.live(S.cats).some(c => c.type === x.type && c.name === x.cat); if (!have) cs[x.type + ":" + x.cat] = x.cat; });
+    const keys = {}; add.forEach(x => { keys[keyOf(x)] = 1; });
+    const old = K.live(S.tx).filter(t => t.src === "csv" && keys[keyOf(t)]).length;
+    $("csvPrev").innerHTML = `<div class="alert ok"><strong>元の家計簿のバックアップです</strong>${add.length}件${dates.length ? `（${dates[0].replace(/-/g, "/")}〜${dates[dates.length - 1].replace(/-/g, "/")}）` : ""}を、カテゴリ・お店・レシートのまとまり・収入と支出の区別をそのまま取り込みます。${IMP.length - add.length ? `<br>${IMP.length - add.length}件はすでに取り込み済みなので外します。` : ""}${Object.keys(cs).length ? `<br>新しいカテゴリ：${Object.values(cs).map(esc).join("、")}` : ""}${old ? `<br>前に「その他」で取り込んだ同じ記録${old}件は、正しいカテゴリのものに置き換えます。` : ""}</div>
+      <button type="button" class="primary wide" id="impGo"${add.length ? "" : " disabled"}>${add.length}件を取り込む</button>`;
+    $("impGo").onclick = () => {
+      const t = now(), keysAdd = {}; add.forEach(x => { keysAdd[keyOf(x)] = 1; });
+      S.tx.forEach(o => { if (!o.del && o.src === "csv" && keysAdd[keyOf(o)]) Object.assign(o, { del: true, updatedAt: t }); });
+      add.forEach(x => { if (!K.live(S.cats).some(c => c.type === x.type && c.name === x.cat)) { const l = cats(x.type); S.cats.push({ id: K.uid("c"), name: x.cat, type: x.type, color: K.PALETTE[l.length % K.PALETTE.length], order: (l.length ? l[l.length - 1].order : 0) + 1, updatedAt: t }); } });
+      add.forEach(x => { S.tx.push({ id: x.id, rid: x.rid, type: x.type, date: x.date, amount: x.amount, cat: x.cat, item: x.item, shop: x.shop, qty: x.qty, uval: x.uval, utype: x.utype, memo: "", by: "", src: "neko", createdAt: t, updatedAt: t }); });
+      IMP = null; $("csvPrev").innerHTML = ""; changed(); toast(add.length + "件を取り込みました"); if (typeof syncNow === "function" && D.fileId) syncNow();
+    };
   }
   function drawPrev() {
     const n = IMP.filter(x => x.on).length, dups = IMP.filter(x => x.dup).length;
