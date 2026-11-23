@@ -127,6 +127,10 @@ textarea.io{width:100%;min-height:90px;font:12px/1.5 ui-monospace,monospace;bord
 .seg.full{display:flex}.seg.full button{flex:1}
 .backb{font:inherit;font-size:15px;font-weight:700;color:var(--primary);background:none;border:0;padding:12px 0 0;cursor:pointer}
 .backb+h1{margin-top:4px}
+.cdt{display:flex;align-items:center;gap:10px}.cdt .dot{width:16px;height:16px;border-radius:4px;display:inline-block}
+.cbar[data-cat]{cursor:pointer;border-radius:8px;margin-left:-6px;margin-right:-6px;padding:4px 6px;position:relative}
+.cbar[data-cat]:hover,.cbar[data-cat]:focus-visible{background:var(--fill)}
+.cbar[data-cat]::after{content:"›";position:absolute;right:-12px;top:2px;color:var(--faint);font-size:16px}
 .demo{background:#FFF6E0;border:1px solid #F0D58A;border-radius:var(--r-md);padding:10px 12px;margin:10px 0 4px;font-size:13px;line-height:1.7;color:#5A4500}
 .demo a{display:inline-block;margin-left:4px;color:var(--primary);font-weight:700}
 body.kb .demo{display:none}
@@ -165,6 +169,14 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     <div class="sum" id="sum"></div>
     <section class="card" id="catCard"><h2>カテゴリ別の支出</h2><div id="cats"></div></section>
     <section class="card"><h2>記録</h2><div id="dayList"></div></section>
+  </section>
+
+  <!-- カテゴリの内訳 -->
+  <section class="view" id="v-cat">
+    <button type="button" class="backb" id="catBack">‹ 戻る</button>
+    <h1 id="cdTitle" class="cdt"></h1>
+    <div class="mnav"><button type="button" data-m="-1" aria-label="前の月">‹</button><b id="cdMonth"></b><button type="button" data-m="1" aria-label="次の月">›</button></div>
+    <div id="cd"></div>
   </section>
 
   <!-- 入力 -->
@@ -400,6 +412,23 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return Object.values(m).filter(x => x.n >= 2 || x.unit).sort((a, b) => b.n - a.n);
   }
 
+  // カテゴリの中身（その月）：品目別・お店別・記録の一覧と先月との比較
+  function catDetail(s, ym, cat, type, upto) {
+    const ty = type || "expense", inCat = t => t.type === ty && t.cat === cat;
+    const rows = live(s.tx).filter(t => inCat(t) && inYm(t, ym)).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (b.createdAt || 0) - (a.createdAt || 0)));
+    const total = rows.reduce((a, t) => a + t.amount, 0);
+    // upto（日）を渡すと、先月も同じ日までで比べる（月の途中で比べるため）
+    const last = live(s.tx).filter(t => inCat(t) && inYm(t, addYm(ym, -1)) && (!upto || Number(t.date.slice(8, 10)) <= upto)).reduce((a, t) => a + t.amount, 0);
+    const im = {}, sm = {};
+    rows.forEach(t => {
+      const k = normName(t.item) || "（品名なし）"; const x = (im[k] = im[k] || { item: t.item || "（品名なし）", total: 0, n: 0, qty: 0 }); x.total += t.amount; x.n++; x.qty += t.qty || 1;
+      const sk = t.shop || "（お店なし）"; const y = (sm[sk] = sm[sk] || { shop: sk, total: 0, rids: {} }); y.total += t.amount; y.rids[t.rid] = 1;
+    });
+    const b = live(s.budgets).find(x => x.cat === cat && x.amount > 0);
+    return { cat, ym, total, count: rows.length, last, diff: total - last, budget: b ? b.amount : 0, rows,
+      items: Object.values(im).sort((a, b) => b.total - a.total), shops: Object.values(sm).map(x => ({ shop: x.shop, total: x.total, n: Object.keys(x.rids).length })).sort((a, b) => b.total - a.total) };
+  }
+
   function goal(g, ym) {
     const saved = num(g.saved), target = num(g.target), left = Math.max(0, target - saved);
     let months = 0, per = 0;
@@ -509,7 +538,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, normName, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, catDetail, normName, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -569,19 +598,19 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
 
   // ---- 画面切り替え ----
   // 画面の切り替え。ブラウザ・スマホの「戻る」で1つ前の画面（とスクロール位置）に戻れるよう履歴に積む
-  const navState = () => ({ v: view, ym, rp: typeof rpTab === "string" ? rpTab : "trend", y: Math.round(window.scrollY) });
+  const navState = () => ({ v: view, ym, rp: typeof rpTab === "string" ? rpTab : "trend", cat: typeof detailCat === "string" ? detailCat : "", y: Math.round(window.scrollY) });
   function show(v) {
     if (v !== "input" && F && F.rid) F = null;
     view = v;
     document.body.classList.remove("kb");
     document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === "v-" + v));
-    document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+    document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.v === (v === "cat" ? "home" : v)));
     if (v === "input" && !F) newForm();
     renderAll();
   }
   function go(v, opt) {
     const o = opt || {};
-    try { history.replaceState(navState(), ""); if (!o.replace) history.pushState({ v, ym, rp: navState().rp, y: 0 }, ""); else history.replaceState({ v, ym, rp: navState().rp, y: 0 }, ""); } catch (e) {}
+    try { history.replaceState(navState(), ""); const ns = Object.assign(navState(), { v, y: 0 }); if (!o.replace) history.pushState(ns, ""); else history.replaceState(ns, ""); } catch (e) {}
     show(v); window.scrollTo(0, 0);
   }
   function back(fallback) { if (history.state && history.length > 1 && navDepth > 0) history.back(); else go(fallback || "home", { replace: true }); }
@@ -591,6 +620,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const st = e.state || { v: "home" }; navDepth = Math.max(0, navDepth - 1);
     if (F && F.rid && st.v !== "input") F = null;
     if (st.ym) ym = st.ym;
+    if (st.cat) detailCat = st.cat;
     if (st.rp && typeof rpTab === "string") { rpTab = st.rp; $("rpTab").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.r === rpTab)); }
     if (st.v === "input" && F && !F.rid && st.edit) F = null;
     show(st.v || "home"); requestAnimationFrame(() => window.scrollTo(0, st.y || 0));
@@ -612,7 +642,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     $("sum").innerHTML = `<div class="k">${mLabel(ym)}の支出</div><div class="big">${yen(m.expense)}</div>
       <div class="grid"><div><span class="k">収入</span><b>${yen(m.income)}</b></div><div><span class="k">収入 − 支出</span><b>${m.balance < 0 ? "−" : ""}${yen(Math.abs(m.balance))}</b></div></div>${pace}`;
     const max = Math.max(1, ...m.cats.map(c => Math.max(c.amount, c.budget)));
-    $("cats").innerHTML = m.cats.length ? m.cats.map(c => `<div class="cbar"><span class="dot" style="background:${c.color}"></span><span>${esc(c.cat)}</span><span><b>${yen(c.amount)}</b>${c.budget ? ` <span class="b${c.amount > c.budget ? " over" : ""}">/ ${yen(c.budget)}</span>` : ""}</span><div class="t"><i style="width:${Math.round(c.amount / max * 100)}%;background:${c.amount > c.budget && c.budget ? "var(--neg)" : c.color}"></i></div></div>`).join("") : `<p class="empty">この月の支出はまだありません。</p>`;
+    $("cats").innerHTML = m.cats.length ? m.cats.map(c => `<div class="cbar" role="button" tabindex="0" data-cat="${esc(c.cat)}" aria-label="${esc(c.cat)}の詳しい内訳"><span class="dot" style="background:${c.color}"></span><span>${esc(c.cat)}</span><span><b>${yen(c.amount)}</b>${c.budget ? ` <span class="b${c.amount > c.budget ? " over" : ""}">/ ${yen(c.budget)}</span>` : ""}</span><div class="t"><i style="width:${Math.round(c.amount / max * 100)}%;background:${c.amount > c.budget && c.budget ? "var(--neg)" : c.color}"></i></div></div>`).join("") + `<p class="note" style="margin:6px 0 0">カテゴリを押すと、何にいくら使ったかの内訳を見られます。</p>` : `<p class="empty">この月の支出はまだありません。</p>`;
     const ds = K.days(S, ym);
     $("dayList").innerHTML = ds.length ? ds.map(d => `<div class="day"><span>${md(d.date)}</span><span>${d.expense ? "支出 " + yen(d.expense) : ""}${d.income ? "　収入 " + yen(d.income) : ""}</span></div>` + d.receipts.map(rcHtml).join("")).join("")
       : `<p class="empty">${cur ? "まだ記録がありません。下の「＋ 入力」から、今日の買い物を1件入れてみましょう。" : "この月の記録はありません。"}</p>`;
@@ -623,7 +653,31 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return `<button type="button" class="rc" data-rid="${esc(r.rid)}"><div class="top"><span class="nm">${esc(title)}</span><span class="amt${r.type === "income" ? " inc" : ""}">${r.type === "income" ? "+" : ""}${yen(r.total)}</span></div>
       <div class="ds">${cs.map(c => `<span class="chip">${esc(c)}</span>`).join("")}${esc(desc)}${r.by ? `<span style="float:right">${esc(r.by)}</span>` : ""}</div></button>`;
   }
-  document.addEventListener("click", e => { const b = e.target.closest(".rc"); if (b) editReceipt(b.dataset.rid); });
+  document.addEventListener("click", e => { const b = e.target.closest(".rc"); if (b) return editReceipt(b.dataset.rid); const c = e.target.closest(".cbar[data-cat]"); if (c) openCat(c.dataset.cat); });
+  $("cats").addEventListener("keydown", e => { const c = e.target.closest(".cbar[data-cat]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openCat(c.dataset.cat); } });
+
+  // ---- カテゴリの内訳 ----
+  let detailCat = "", showAllItems = false;
+  function openCat(cat) { detailCat = cat; showAllItems = false; go("cat"); }
+  $("catBack").onclick = () => back("home");
+  function renderCat() {
+    const cur = ym === today().slice(0, 7), dd = Number(today().slice(8)), d = K.catDetail(S, ym, detailCat, "expense", cur ? dd : 0), col = color("expense", detailCat);
+    $("cdTitle").innerHTML = `<span class="dot" style="background:${col}"></span>${esc(detailCat)}`;
+    $("cdMonth").textContent = mLabel(ym);
+    const pct = d.budget ? Math.round(d.total / d.budget * 100) : 0;
+    const tr = K.trend(S, ym, 6), ser = tr.cats[detailCat] || tr.months.map(() => 0);
+    const items = showAllItems ? d.items : d.items.slice(0, 8);
+    $("cd").innerHTML = `<div class="sum"><div class="k">${mLabel(ym)}の${esc(detailCat)}</div><div class="big">${yen(d.total)}</div>
+        <div class="grid"><div><span class="k">先月（${Number(K.addYm(ym, -1).slice(5))}月${cur ? dd + "日まで" : ""}）</span><b>${yen(d.last)}</b></div><div><span class="k">先月と比べて</span><b>${d.diff > 0 ? "+" : d.diff < 0 ? "−" : "±"}${yen(Math.abs(d.diff))}</b></div></div>
+        ${d.budget ? `<div class="meter${d.total > d.budget ? " over" : ""}"><i style="width:${Math.min(100, pct)}%"></i></div><div class="pace">予算 ${yen(d.budget)} のうち ${pct}%${d.total > d.budget ? `。<b>${yen(d.total - d.budget)}</b> こえています` : `。あと <b>${yen(d.budget - d.total)}</b>${cur ? "使えます" : "残りました"}`}</div>` : ""}</div>
+      ${d.count ? `<section class="card"><h2>何に使った？</h2><table class="t"><tr><th>品目</th><th>回数</th><th>合計</th></tr>${items.map(x => `<tr><td>${esc(x.item)}</td><td>${x.n}回</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table>${d.items.length > 8 ? `<button type="button" class="ghostb wide" id="cdMore">${showAllItems ? "上位8件だけ表示" : `すべて表示（${d.items.length}品目）`}</button>` : ""}</section>
+      <section class="card"><h2>どこで使った？</h2><table class="t"><tr><th>お店</th><th>回数</th><th>合計</th></tr>${d.shops.map(x => `<tr><td>${esc(x.shop)}</td><td>${x.n}回</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table></section>` : ""}
+      <section class="card"><h2>6か月の推移</h2>${bars(tr.months, [ser], [col])}<p class="note">棒を押すと、その月の${esc(detailCat)}を表示します。</p></section>
+      <section class="card"><h2>記録（${d.count}件）</h2>${d.count ? d.rows.map(t => `<button type="button" class="rc" data-rid="${esc(t.rid)}"><div class="top"><span class="nm">${esc(t.item || t.shop || t.cat)}${t.qty > 1 ? ` ×${t.qty}` : ""}</span><span class="amt">${yen(t.amount)}</span></div><div class="ds">${md(t.date)}　${esc(t.shop || "")}${t.by ? `<span style="float:right">${esc(t.by)}</span>` : ""}</div></button>`).join("") : `<p class="empty">この月の${esc(detailCat)}の記録はありません。</p>`}</section>`;
+    const mb = $("cdMore"); if (mb) mb.onclick = () => { showAllItems = !showAllItems; renderCat(); };
+    $("cd").querySelector("svg").onclick = e => { const m = e.target.dataset && e.target.dataset.m; if (m) { ym = m; try { history.replaceState(navState(), ""); } catch (er) {} renderCat(); } };
+  }
+  document.querySelectorAll("#v-cat .mnav button").forEach(b => b.onclick = () => { ym = K.addYm(ym, Number(b.dataset.m)); try { history.replaceState(navState(), ""); } catch (e) {} renderCat(); });
 
   // ---- 入力 ----
   let F = null;
@@ -1057,6 +1111,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     if (view === "home") renderHome();
     else if (view === "report") renderReport();
     else if (view === "memo") renderMemo();
+    else if (view === "cat") renderCat();
     else if (view === "set") { renderSet(); drawDrive(); }
   }
   newForm(); F = null;
