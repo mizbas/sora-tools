@@ -256,8 +256,8 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <details><summary>同じものを2人が同時に直したら？</summary><div class="a">記録ごとに、あとから保存したほうが残ります。別々の記録を同時に入れたときは、両方とも残ります。</div></details>
       <details><summary>Googleドライブの中身を見られることはありますか？</summary><div class="a">この家計簿が使えるのは、この家計簿で作ったファイルと、あなたが選んだファイルだけです（drive.file という最小限の権限）。ほかのファイルを読んだり変更したりすることはできません。連携はGoogleアカウントの「サードパーティ製のアプリとサービス」からいつでも解除できます。くわしくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</div></details>
       <details><summary>機種変更するときは</summary><div class="a">Googleドライブで同期していれば、新しいスマホで「家族が作ったファイルを選ぶ」（自分で作った場合も同じ）から同じファイルを選ぶだけです。同期していない場合は「データを書き出す」でできた文字を新しいスマホの「読み込む」に貼り付けます。</div></details>
-      <details><summary>値引きや容量を入れたい</summary><div class="a">品目の右の「値引き・容量」を押すと、値引き額と容量（g・mL・個）を入れられます。容量を入れておくと「振り返り」の「底値」で、100gあたり・100mLあたりの値段をお店ごとに比べられます。次に同じ品名を入れたときは、容量も自動で入ります。</div></details>
-      <details><summary>底値帳の使い方</summary><div class="a">「振り返り」→「底値」で品名を入れると、これまでに買った値段が安い順に並び、いちばん安かったお店と日付がわかります。品名に含まれる言葉で探すので、「牛乳」で「牛乳 1L」や「低脂肪牛乳」もまとめて出ます。漢字とひらがなはまとめられないので、品名の書き方はそろえておくと便利です。</div></details>
+      <details><summary>値引きや容量を入れたい</summary><div class="a">品目の下の「＋ 値引き・容量」を押すと、値引き額と容量（g・mL・個）を入れられます。容量は入れなくても大丈夫です。品名に「牛乳1L」「鶏むね600g」「卵10個入り」のように量が書いてあれば、自動で読み取って、底値帳で100mLあたり・100gあたりの値段を比べます。量がわからない品物は1点あたりの値段で比べます。</div></details>
+      <details><summary>底値帳の使い方</summary><div class="a">「振り返り」→「底値」で品名を入れると、これまでに買った値段が安い順に並び、いちばん安かったお店と日付がわかります。品名に含まれる言葉で探すので、「牛乳」で「牛乳1L」や「低脂肪牛乳」もまとめて出ます。品名に量（1L、500mlなど）が入っていれば、サイズ違いも100mLあたりで比べます。漢字とひらがなはまとめられないので、品名の書き方はそろえておくと便利です。</div></details>
       <details><summary>途中まで入れたレシートをあとで続けたい</summary><div class="a">入力画面の右上の「一時保存」を押すと、入力中の内容をこの端末に5件まで取っておけます。「復元」から続きを入れられます。</div></details>
       <details><summary>サブスクも管理したい</summary><div class="a">定額サービスの請求日や無料期間の管理は、別のツール<a href="tool.html?id=subsc">「サブスク管理」</a>が向いています（別売り）。</div></details>
       <details><summary>ホーム画面に置きたい</summary><div class="a">iPhoneはSafariの共有ボタンから「ホーム画面に追加」、AndroidはChromeのメニューから「ホーム画面に追加」で、アプリのように開けます。</div></details>
@@ -386,9 +386,27 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   function normName(x) {
     return String(x || "").normalize("NFKC").toLowerCase().replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60)).replace(/[\s・･\-ー－_]/g, "");
   }
+  // 品名に書いてある量を読み取る（例：牛乳1L、鶏むね 600g、卵10個入り、お茶500ml×2）
+  function volOf(name) {
+    const x = String(name || "").normalize("NFKC").replace(/,/g, "");
+    const m = x.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|cc|l|ℓ|リットル|グラム|キロ|個|枚|本|玉|切れ|袋)(?:\s*[x×*]\s*(\d+))?/i);
+    if (!m) return null;
+    let v = Number(m[1]); const u = m[2].toLowerCase(), k = m[3] ? Number(m[3]) : 1;
+    if (!(v > 0)) return null;
+    let t;
+    if (u === "kg" || u === "キロ") { v *= 1000; t = "g"; }
+    else if (u === "g" || u === "グラム") t = "g";
+    else if (u === "l" || u === "ℓ" || u === "リットル") { v *= 1000; t = "mL"; }
+    else if (u === "ml" || u === "cc") t = "mL";
+    else t = "個";
+    return { uval: Math.round(v * k * 100) / 100, utype: t };
+  }
+  // 容量の欄が空なら品名から読み取る
+  const volFor = t => (num(t.uval) > 0 ? { uval: num(t.uval), utype: t.utype || "g" } : volOf(t.item));
   // 100g・100mLあたり、個は1個あたり（税込・値引き後）
   function unitPrice(t) {
-    const v = num(t.uval), q = Math.max(1, num(t.qty) || 1); if (!(v > 0)) return null;
+    const vf = volFor(t) || {}, v = num(vf.uval), q = Math.max(1, num(t.qty) || 1); if (!(v > 0)) return null;
+    t = Object.assign({}, t, { utype: vf.utype });
     const per = t.utype === "個" ? 1 : 100;
     return Math.round(t.amount / (v * q) * per * 10) / 10;
   }
@@ -396,7 +414,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   function priceBook(s, q, from) {
     const key = normName(q); if (!key) return { rows: [], best: null, shops: [] };
     const rows = live(s.tx).filter(t => t.type !== "income" && t.item && normName(t.item).includes(key) && (!from || t.date >= from))
-      .map(t => ({ id: t.id, rid: t.rid, date: t.date, shop: t.shop || "", item: t.item, qty: t.qty || 1, amount: t.amount, each: Math.round(t.amount / (t.qty || 1)), utype: t.utype || "", uval: num(t.uval) || 0, up: unitPrice(t) }));
+      .map(t => { const vf = volFor(t) || {}; return { id: t.id, rid: t.rid, date: t.date, shop: t.shop || "", item: t.item, qty: t.qty || 1, amount: t.amount, each: Math.round(t.amount / (t.qty || 1)), utype: vf.utype || "", uval: num(vf.uval) || 0, auto: !(num(t.uval) > 0) && !!vf.uval, up: unitPrice(t) }; });
     // 比べる単位：いちばん多い単位（容量なしは1点あたりで比べる）
     const cnt = {}; rows.forEach(r => { const k = r.up == null ? "" : r.utype; cnt[k] = (cnt[k] || 0) + 1; });
     const unit = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || "";
@@ -408,7 +426,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   }
   function priceItems(s) {
     const m = {};
-    live(s.tx).forEach(t => { if (t.type === "income" || !t.item) return; const k = normName(t.item); const x = (m[k] = m[k] || { item: t.item, n: 0, last: "", unit: false }); x.n++; if (t.date >= x.last) { x.last = t.date; x.item = t.item; } if (t.uval) x.unit = true; });
+    live(s.tx).forEach(t => { if (t.type === "income" || !t.item) return; const k = normName(t.item); const x = (m[k] = m[k] || { item: t.item, n: 0, last: "", unit: false }); x.n++; if (t.date >= x.last) { x.last = t.date; x.item = t.item; } if (volFor(t)) x.unit = true; });
     return Object.values(m).filter(x => x.n >= 2 || x.unit).sort((a, b) => b.n - a.n);
   }
 
@@ -538,7 +556,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, catDetail, normName, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, catDetail, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -714,7 +732,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <div class="r1"><input type="text" class="ct" value="${esc(r.cat)}" placeholder="カテゴリ" autocomplete="off" enterkeyhint="next" aria-label="カテゴリ"><input type="text" class="it" placeholder="${inc ? "例：11月分の給料" : "品名（例：牛乳）"}" value="${esc(r.item)}" autocomplete="off" enterkeyhint="next" aria-label="品名"></div>
       <div class="r2">${inc ? "" : `<span class="qw">×<input type="text" class="qty" inputmode="numeric" value="${esc(r.qty)}" aria-label="個数" enterkeyhint="next">個</span>`}<span class="amw"><input type="text" class="am" inputmode="numeric" placeholder="金額" value="${esc(fmtAmt(r.amount))}" enterkeyhint="next" aria-label="金額">円</span>${taxed ? `<select class="rt" aria-label="税率">${[["8", "8%"], ["10", "10%"], ["0", "非課税"]].map(([v, l]) => `<option value="${v}"${String(r.rate) === v ? " selected" : ""}>${l}</option>`).join("")}</select>` : ""}${F.rows.length > 1 ? `<button type="button" class="x" aria-label="この行を削除">×</button>` : ""}</div>
       ${inc ? "" : `<button type="button" class="more">${r.more ? "値引き・容量を閉じる" : "＋ 値引き・容量"}</button>`}
-      ${!inc && r.more ? `<div class="r3"><div><label>値引き（円）</label><input type="text" class="dc" inputmode="numeric" value="${esc(fmtAmt(r.disc))}" placeholder="0" enterkeyhint="next"></div><div><label>容量</label><input type="text" class="uv" inputmode="decimal" value="${esc(r.uval || "")}" placeholder="例：1000" enterkeyhint="next"></div><div><label>単位</label><select class="ut">${["g", "mL", "個"].map(u => `<option${u === (r.utype || "g") ? " selected" : ""}>${u}</option>`).join("")}</select></div></div><div class="upv"></div>` : ""}</div>`).join("");
+      ${!inc && r.more ? `<div class="r3"><div><label>値引き（円）</label><input type="text" class="dc" inputmode="numeric" value="${esc(fmtAmt(r.disc))}" placeholder="0" enterkeyhint="next"></div><div><label>容量</label><input type="text" class="uv" inputmode="decimal" value="${esc(r.uval || "")}" placeholder="例：1000" enterkeyhint="next"></div><div><label>単位</label><select class="ut">${["g", "mL", "個"].map(u => `<option${u === (r.utype || "g") ? " selected" : ""}>${u}</option>`).join("")}</select></div></div>` : ""}${inc ? "" : `<div class="upv"></div>`}</div>`).join("");
     calcTotal();
   }
   function readRows() {
@@ -733,7 +751,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const rows = F.rows.filter(r => K.num(r.amount) > 0), mode = F.type === "income" ? "incl" : F.tax;
     const rc = K.receipt(rows, mode);
     $("tot").textContent = yen(rc.total);
-    let k = 0; $("rows").querySelectorAll(".row").forEach(el => { const r = F.rows[Number(el.dataset.i)], u = el.querySelector(".upv"); if (!r) return; const has = K.num(r.amount) > 0; const amt = has ? rc.incl[k++] : 0; if (!u) return; const up = has ? K.unitPrice({ amount: amt, qty: r.qty, uval: r.uval, utype: r.utype }) : null; u.textContent = up != null ? `${r.utype === "個" ? "1個" : "100" + r.utype}あたり ${up.toLocaleString("ja-JP")}円（税込）` : ""; });
+    let k = 0; $("rows").querySelectorAll(".row").forEach(el => { const r = F.rows[Number(el.dataset.i)], u = el.querySelector(".upv"); if (!r) return; const has = K.num(r.amount) > 0; const amt = has ? rc.incl[k++] : 0; if (!u) return; const vf = K.num(r.uval) > 0 ? { utype: r.utype } : K.volOf(r.item); const up = has ? K.unitPrice({ amount: amt, qty: r.qty, uval: r.uval, utype: r.utype, item: r.item }) : null; u.textContent = up != null ? `${vf.utype === "個" ? "1個" : "100" + vf.utype}あたり ${up.toLocaleString("ja-JP")}円（税込）` : ""; });
     const tx = Object.keys(rc.tax).filter(k => rc.tax[k]).map(k => `${k}% ${yen(rc.tax[k])}`).join("・");
     $("totNote").textContent = F.type === "income" ? "収入の合計" : (tx ? "合計（うち消費税 " + tx + "）" : "合計");
     return rc;
@@ -978,12 +996,12 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       el.innerHTML = `<section class="card"><h2>底値帳</h2><input type="text" id="pq" class="in" placeholder="品名（例：牛乳）" value="${esc(priceQ)}" list="dlPrice" enterkeyhint="search" autocomplete="off"><datalist id="dlPrice">${its.map(x => `<option value="${esc(x.item)}">`).join("")}</datalist><div id="pres"></div></section>`;
       const run = () => {
         priceQ = $("pq").value.trim(); const box = $("pres");
-        if (!priceQ) { box.innerHTML = its.length ? `<p class="note">よく買う品物</p><div class="chips">${its.slice(0, 30).map(x => `<button type="button" data-pi="${esc(x.item)}">${esc(x.item)}</button>`).join("")}</div>` : `<p class="empty">入力のときに「値引き・容量」から容量（g・mL・個）を入れると、100gあたりなどの値段で比べられます。同じ品物を2回以上買うと、ここに出てきます。</p>`; return; }
+        if (!priceQ) { box.innerHTML = its.length ? `<p class="note">よく買う品物</p><div class="chips">${its.slice(0, 30).map(x => `<button type="button" data-pi="${esc(x.item)}">${esc(x.item)}</button>`).join("")}</div>` : `<p class="empty">同じ品物を2回以上買うと、ここに出てきます。品名に「牛乳1L」「鶏むね600g」のように量が入っていれば、100mLあたり・100gあたりの値段で比べます。</p>`; return; }
         const b = K.priceBook(S, priceQ), fmt = v => v == null ? "-" : (Math.round(v * 10) / 10).toLocaleString("ja-JP") + "円";
         if (!b.rows.length) { box.innerHTML = `<p class="empty">「${esc(priceQ)}」を買った記録はありません。</p>`; return; }
         box.innerHTML = (b.best ? `<div class="best"><span class="note" style="margin:0">いちばん安かったのは（${b.label}）</span><br><b>${fmt(b.val(b.best))}</b>　${esc(b.best.shop || "お店なし")}・${b.best.date.slice(0, 4)}年${Number(b.best.date.slice(5, 7))}月${Number(b.best.date.slice(8))}日</div>` : "")
           + (b.shops.length > 1 ? `<p class="note">お店ごとのいちばん安い値段（${b.label}）</p><table class="t">${b.shops.map((x, i) => `<tr class="${i ? "" : "cheap"}"><td>${esc(x.shop)}</td><td>${fmt(x.v)}</td></tr>`).join("")}</table>` : "")
-          + `<p class="note">買った記録（安い順・税込・値引き後）</p><table class="t"><tr><th>日付・お店</th><th>値段</th><th>${b.label}</th></tr>${b.rows.slice(0, 100).map(r => `<tr><td>${r.date.slice(5).replace("-", "/")} ${esc(r.shop)}<br><span class="note" style="margin:0">${esc(r.item)}${r.uval ? " " + r.uval + r.utype : ""}${r.qty > 1 ? " ×" + r.qty : ""}</span></td><td>${yen(r.amount)}</td><td>${fmt(b.val(r))}</td></tr>`).join("")}</table>`
+          + `<p class="note">買った記録（安い順・税込・値引き後）</p><table class="t"><tr><th>日付・お店</th><th>値段</th><th>${b.label}</th></tr>${b.rows.slice(0, 100).map(r => `<tr><td>${r.date.slice(5).replace("-", "/")} ${esc(r.shop)}<br><span class="note" style="margin:0">${esc(r.item)}${r.uval && !r.auto ? " " + r.uval + r.utype : ""}${r.qty > 1 ? " ×" + r.qty : ""}</span></td><td>${yen(r.amount)}</td><td>${fmt(b.val(r))}</td></tr>`).join("")}</table>`
           + (b.rows.some(r => b.val(r) == null) ? `<p class="note">容量の単位がちがう記録・容量のない記録は「-」で、比べる対象から外しています。</p>` : "");
       };
       $("pq").addEventListener("input", run); $("pres").addEventListener("click", e => { const v = e.target.dataset.pi; if (v) { $("pq").value = v; run(); } }); run();
