@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<title>わが家の家計簿 ｜そらのツール箱</title>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+<script src="app.js"></script>
+<style>
+body{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
+.view{display:none}.view.on{display:block}
+h1{margin:16px 0 4px}
+.mnav{display:flex;align-items:center;justify-content:space-between;margin:12px 0 4px}
+.mnav b{font-size:18px;font-variant-numeric:tabular-nums}
+.mnav button{font:inherit;font-size:20px;width:44px;height:40px;border:1px solid var(--line);border-radius:var(--r-sm);background:#fff;color:var(--primary);cursor:pointer}
+.mnav button:disabled{opacity:.35}
+.sum{background:var(--navy);color:#fff;border-radius:var(--r-lg);padding:16px;margin:10px 0}
+.sum .k{font-size:12.5px;color:rgba(255,255,255,.72)}
+.sum .big{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25;margin:2px 0 8px}
+.sum .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-variant-numeric:tabular-nums}
+.sum .grid div{background:rgba(255,255,255,.08);border-radius:var(--r-sm);padding:8px 10px}
+.sum .grid b{display:block;font-size:16px}
+.sum .pace{font-size:12.5px;color:rgba(255,255,255,.85);margin-top:10px;line-height:1.6}
+.meter{height:8px;background:rgba(255,255,255,.18);border-radius:4px;overflow:hidden;margin-top:10px;position:relative}
+.meter i{display:block;height:100%;background:#7FB2FF;border-radius:4px}
+.meter.over i{background:#FF8A80}
+.meter u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.85}
+.cbar{display:grid;grid-template-columns:12px 1fr auto;column-gap:8px;row-gap:0;align-items:center;margin:10px 0;font-size:13.5px;font-variant-numeric:tabular-nums}
+.cbar .dot{width:12px;height:12px;border-radius:3px}
+.cbar .t{height:6px;background:var(--fill);border-radius:3px;overflow:hidden;margin-top:5px;grid-column:2/4}
+.cbar .t i{display:block;height:100%;border-radius:3px}
+.cbar .b{color:var(--sub);font-size:12px}
+.cbar .b.over{color:var(--neg);font-weight:700}
+.day{margin:14px 0 4px;display:flex;justify-content:space-between;font-size:12.5px;color:var(--sub);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--line);padding-bottom:4px}
+.rc{display:block;width:100%;text-align:left;font:inherit;border:1px solid var(--line);border-radius:var(--r-md);background:#fff;padding:10px 12px;margin:6px 0;cursor:pointer;color:var(--ink)}
+.rc .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.rc .nm{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc .amt{flex:none;width:auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rc .amt.inc{color:var(--pos)}
+.rc .ds{font-size:12.5px;color:var(--sub);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--fill);color:var(--sub);margin-right:4px}
+.empty{color:var(--sub);font-size:13.5px;line-height:1.75;padding:8px 0}
+/* 入力 */
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lbl{display:block;font-size:12.5px;color:var(--sub);font-weight:600;margin:10px 0 4px}
+.in{width:100%!important;text-align:left!important}
+input[type=date].in{font:inherit;font-size:16px;padding:9px 11px;border:1px solid transparent;border-radius:var(--r-sm);background:var(--fill);color:var(--ink)}
+.rows{margin-top:6px}
+.row{border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin:8px 0;background:#fff}
+.row .r1{display:grid;grid-template-columns:112px 1fr;gap:8px}
+.row .amw{flex:1 1 auto;min-width:110px;display:flex;align-items:center;gap:3px;font-size:13px;color:var(--sub)}
+.row .amw input{flex:1;min-width:0;text-align:right!important;font-weight:700}
+.row .rt{width:74px!important;padding:9px 4px!important;flex:none}
+.dd{position:fixed;z-index:70;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(20,40,75,.18);list-style:none;margin:0;padding:4px 0;max-height:250px;overflow:auto;display:none}
+.dd.on{display:block}
+.dd li{padding:11px 12px;font-size:14.5px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;cursor:pointer;border-bottom:1px solid var(--fill)}
+.dd li small{color:var(--sub);font-size:12px;white-space:nowrap}
+.dd li.act{background:var(--primary);color:#fff}.dd li.act small{color:#fff}
+body.kb .tabbar,body.kb .foot,body.kb header,body.kb #inTools,body.kb #v-input h1{display:none}
+body.kb{padding-bottom:45vh}
+body.kb .row{padding:8px 10px;margin:6px 0}
+body.kb .row .r2{margin-top:6px}
+body.kb .row .more{padding-top:4px}
+body.kb .row:not(:focus-within) .more{display:none}
+body.kb .row .r2{margin-top:6px}
+.row .r2{display:flex;gap:8px;margin-top:8px;align-items:center}
+.row .r2 .rt{flex:none}
+.row .qw{display:flex;align-items:center;gap:3px;font-size:12px;color:var(--sub);flex:none}
+.row input,.row select{width:100%}
+.row .qty{width:52px!important;text-align:center!important;padding:9px 4px!important}
+.row .x{font:inherit;border:0;background:none;color:var(--faint);font-size:20px;line-height:1;padding:4px 2px 4px 4px;cursor:pointer;flex:none}
+.row .hint{font-size:11.5px;color:var(--faint);margin-top:4px}
+.btnw{width:100%;font:inherit;font-size:14px;font-weight:600;border:1px dashed #B9C7DD;border-radius:var(--r-md);padding:11px;background:#fff;color:var(--primary);cursor:pointer;margin-top:4px}
+.foot{position:sticky;bottom:calc(64px + env(safe-area-inset-bottom));background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:10px 12px;margin:12px 0;display:flex;align-items:center;gap:12px;box-shadow:0 -4px 16px rgba(20,40,75,.08);z-index:6}
+.foot .tot{flex:1;font-variant-numeric:tabular-nums}
+.foot .tot small{display:block;font-size:11.5px;color:var(--sub)}
+.foot .tot b{font-size:22px}
+.primary{font:inherit;font-size:15px;font-weight:700;border:0;border-radius:var(--r-md);padding:12px 20px;background:var(--primary);color:#fff;cursor:pointer}
+.primary:disabled{opacity:.5}
+.ghostb{font:inherit;font-size:14px;font-weight:600;border:1px solid #B9C7DD;border-radius:var(--r-md);padding:10px 14px;background:#fff;color:var(--primary);cursor:pointer}
+.ghostb.neg{color:var(--neg);border-color:#F0C2BE}
+.wide{width:100%;margin-top:8px}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:80;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1}
+/* グラフ・表 */
+.chart{width:100%;height:auto;display:block;margin-top:6px}
+.chart text{font-size:10px;fill:var(--sub);font-family:var(--font)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--sub);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+table.t{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;margin-top:6px}
+table.t th{font-size:11.5px;color:var(--sub);font-weight:600;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+table.t th:first-child,table.t td:first-child{text-align:left}
+table.t td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
+.up{color:var(--neg)}.down{color:var(--pos)}
+/* 設定 */
+.li{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.li:last-child{border-bottom:0}
+.li input[type=color]{width:30px;height:30px;border:0;padding:0;background:none;border-radius:6px}
+.li .ops{display:flex;gap:4px}
+.li .ops button{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:6px;background:#fff;padding:5px 8px;color:var(--sub);cursor:pointer}
+.li .ops button.del{color:var(--neg)}
+.bud{display:grid;grid-template-columns:12px 1fr 130px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.bud input{width:100%}
+.bud .dot{width:12px;height:12px;border-radius:3px}
+.goal{border:1px solid var(--line);border-radius:var(--r-md);padding:12px;margin:8px 0}
+.goal .top{display:flex;justify-content:space-between;font-weight:700}
+.goal .tr{height:8px;background:var(--fill);border-radius:4px;overflow:hidden;margin:8px 0 4px}
+.goal .tr i{display:block;height:100%;background:var(--pos)}
+.goal .ds{font-size:12.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+.goal .act{display:grid;grid-template-columns:1fr auto auto;gap:6px;margin-top:8px}
+textarea.io{width:100%;min-height:90px;font:12px/1.5 ui-monospace,monospace;border:1px solid var(--line);border-radius:var(--r-sm);padding:8px;margin-top:8px}
+.prev{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:var(--r-sm);margin-top:8px}
+.prev table.t td,.prev table.t th{padding:6px}
+.prev select{width:110px;font-size:13px;padding:5px}
+.prev tr.dup td{color:var(--faint)}
+.sub2{display:flex;gap:8px;flex-wrap:wrap}
+/* タブバー */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.97);border-top:1px solid var(--line);display:flex;justify-content:center;padding:4px 0 calc(4px + env(safe-area-inset-bottom));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.tabbar div{display:flex;max-width:600px;width:100%}
+.tabbar button{flex:1;font:inherit;font-size:11px;font-weight:600;border:0;background:none;color:var(--faint);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;cursor:pointer}
+.tabbar button svg{width:24px;height:24px}
+.tabbar button.on{color:var(--primary)}
+.tabbar button.add svg{background:var(--primary);color:#fff;border-radius:50%;padding:3px;width:28px;height:28px;margin-top:-2px}
+.tabbar button.add.on{color:var(--primary)}
+.seg.full{display:flex}.seg.full button{flex:1}
+.demo{background:#FFF6E0;border:1px solid #F0D58A;border-radius:var(--r-md);padding:10px 12px;margin:10px 0 4px;font-size:13px;line-height:1.7;color:#5A4500}
+.demo a{display:inline-block;margin-left:4px;color:var(--primary);font-weight:700}
+body.kb .demo{display:none}
+.row .more{font:inherit;font-size:12px;font-weight:600;border:0;background:none;color:var(--primary);padding:6px 2px 0;cursor:pointer;display:block}
+.row .r3{display:grid;grid-template-columns:1fr 1fr 70px;gap:8px;margin-top:8px;align-items:end}
+.row .r3 label{font-size:11.5px;color:var(--sub);display:block;margin-bottom:3px}
+.row .r3 input,.row .r3 select{width:100%!important}
+.row .upv{font-size:12px;color:var(--pos);margin-top:5px;font-weight:600}
+.tools{display:flex;gap:8px;justify-content:flex-end;margin:-4px 0 6px}
+.tools button{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--sub);padding:5px 12px;cursor:pointer}
+.drafts{border:1px solid var(--line);border-radius:var(--r-md);padding:4px 10px;margin:4px 0 10px;background:var(--fill)}
+.drafts .li{grid-template-columns:1fr auto}
+.mi{display:grid;grid-template-columns:28px 1fr auto auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.mi input[type=checkbox]{width:22px;height:22px;accent-color:var(--primary)}
+.mi .tx{font-size:15px;overflow-wrap:anywhere}
+.mi.done .tx{color:var(--faint);text-decoration:line-through}
+.mi .by{font-size:11px;color:var(--faint)}
+.mi .x{font:inherit;border:0;background:none;color:var(--faint);font-size:20px;cursor:pointer;padding:2px 4px}
+.madd{display:grid;grid-template-columns:1fr auto;gap:8px}
+.best{background:var(--pos-soft);border-radius:var(--r-md);padding:12px;margin:8px 0;font-variant-numeric:tabular-nums}
+.best b{font-size:20px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chips button{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:999px;background:#fff;padding:5px 11px;cursor:pointer;color:var(--ink)}
+tr.cheap td{background:var(--pos-soft);font-weight:700}
+.fold{border-top:1px solid var(--line);margin-top:10px}
+@media print{.tabbar,.foot{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="no-print"><a href="./index.html">ツール一覧</a></header>
+
+  <!-- ホーム -->
+  <section class="view on" id="v-home">
+    <div class="mnav"><button type="button" data-m="-1" aria-label="前の月">‹</button><b id="mLabel"></b><button type="button" data-m="1" aria-label="次の月">›</button></div>
+    <div class="sum" id="sum"></div>
+    <section class="card" id="catCard"><h2>カテゴリ別の支出</h2><div id="cats"></div></section>
+    <section class="card"><h2>記録</h2><div id="dayList"></div></section>
+  </section>
+
+  <!-- 入力 -->
+  <section class="view" id="v-input">
+    <h1 id="inTitle">入力</h1>
+    <div class="tools" id="inTools"><button type="button" id="modeBtn" title="Enterを押したときに進む順番">入れ方：1品ずつ</button><button type="button" id="draftSave">一時保存</button><button type="button" id="draftOpen">復元</button></div>
+    <div id="draftBox"></div>
+    <section class="card">
+      <div class="seg full" id="inType"><button type="button" data-t="expense" class="on">支出</button><button type="button" data-t="income">収入</button></div>
+      <div class="f2">
+        <div><label class="lbl" for="inDate">日付</label><input type="date" id="inDate" class="in"></div>
+        <div id="shopBox"><label class="lbl" for="inShop">お店</label><input type="text" id="inShop" class="in" placeholder="例：スーパー" autocomplete="off" enterkeyhint="next"></div>
+      </div>
+      <div id="taxBox"><label class="lbl">金額の入れ方</label><div class="seg full" id="inTax"><button type="button" data-x="incl" class="on">税込</button><button type="button" data-x="8">税抜 8%</button><button type="button" data-x="10">税抜 10%</button></div></div>
+      <div class="rows" id="rows"></div>
+      <button type="button" class="btnw" id="addRow">＋ 品目を追加</button>
+      <label class="lbl" for="inMemo">メモ（なくても大丈夫）</label><input type="text" id="inMemo" class="in" placeholder="例：誕生日のケーキ" autocomplete="off">
+    </section>
+    <div class="foot"><div class="tot"><small id="totNote">合計</small><b id="tot">0円</b></div><button type="button" class="primary" id="saveBtn">登録する</button></div>
+    <div id="editOps" style="display:none"><button type="button" class="ghostb wide" id="cancelEdit">編集をやめる</button><button type="button" class="ghostb neg wide" id="delRc">このレシートを削除する</button></div>
+  </section>
+
+  <!-- 買い物メモ -->
+  <section class="view" id="v-memo">
+    <h1>買い物メモ</h1>
+    <p class="lead" style="margin-bottom:8px">買うものをメモしておくと、家族のスマホにも同期されます。買ったものにチェックを入れて「入力へ送る」を押すと、そのまま家計簿の品目になります。</p>
+    <section class="card">
+      <div class="madd"><input type="text" id="mText" class="in" placeholder="例：牛乳" autocomplete="off" enterkeyhint="done"><button type="button" class="primary" id="mAdd" style="padding:10px 16px">追加</button></div>
+      <div id="mList"></div>
+      <div class="sub2" style="margin-top:10px"><button type="button" class="primary" id="mToInput" style="flex:1">チェックしたものを入力へ送る</button><button type="button" class="ghostb" id="mClear">チェックしたものを消す</button></div>
+    </section>
+  </section>
+
+  <!-- 振り返り -->
+  <section class="view" id="v-report">
+    <h1>振り返り</h1>
+    <div class="seg full" id="rpTab" style="margin:8px 0"><button type="button" data-r="trend" class="on">推移</button><button type="button" data-r="yoy">前年比</button><button type="button" data-r="shop">お店</button><button type="button" data-r="price">底値</button><button type="button" data-r="search">検索</button></div>
+    <div id="rp"></div>
+  </section>
+
+  <!-- 設定 -->
+  <section class="view" id="v-set">
+    <h1>設定・共有</h1>
+    <section class="card"><h2>家族で共有する（Googleドライブ）</h2>
+      <p class="note" style="margin:0 0 6px">あなたのGoogleドライブに家計簿のファイルを1つ作り、家族と同じデータを使えるようにします。データはあなたと家族のドライブの間だけでやり取りされ、運営者には送られません。</p>
+      <div class="field" style="border-top:0"><label for="byName">この端末で入力する人<small>記録に「誰が入力したか」が付きます</small></label><input type="text" id="byName" placeholder="例：そら" maxlength="10"></div>
+      <div id="drive"></div>
+    </section>
+    <section class="card"><h2>月の予算</h2><p class="note" style="margin:0 0 4px">カテゴリごとに1か月の予算を入れると、ホームで使いすぎがわかります。0なら予算なし。</p><div id="budgets"></div><p class="note" id="budTotal"></p></section>
+    <section class="card"><h2>貯金の目標</h2><div id="goals"></div>
+      <div class="f2"><div><label class="lbl" for="gName">目標の名前</label><input type="text" id="gName" class="in" placeholder="例：旅行"></div><div><label class="lbl" for="gTarget">目標金額</label><input type="number" id="gTarget" class="in" inputmode="numeric" step="1000" min="0" data-nomoney placeholder="300000"></div></div>
+      <label class="lbl" for="gDead">いつまでに（なくても大丈夫）</label><input type="month" id="gDead" class="in" style="font:inherit;font-size:16px;padding:9px 11px;border:0;border-radius:var(--r-sm);background:var(--fill)">
+      <button type="button" class="ghostb wide" id="gAdd">目標を追加</button>
+    </section>
+    <section class="card"><h2>銀行・カードの明細を取り込む</h2>
+      <p class="note" style="margin:0 0 6px">ネットバンクやクレジットカードのサイトでダウンロードした明細（CSV）を読み込めます。取り込み済みのものは自動で外します。</p>
+      <input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="font-size:14px;margin-top:4px">
+      <details><summary>文字を貼り付けて取り込む</summary><textarea class="io" id="csvText" placeholder="日付,内容,金額 の形の文字を貼り付け"></textarea><button type="button" class="ghostb wide" id="csvRead">読み込む</button></details>
+      <div id="csvPrev"></div>
+      <details class="fold"><summary>自動で分けるルール</summary><p class="note" style="margin:4px 0">明細の内容にこの言葉が入っていたら、このカテゴリにします。取り込みのときにカテゴリを直すと自動で増えます。</p><div id="rules"></div>
+        <div class="f2" style="margin-top:6px"><input type="text" id="rKw" class="in" placeholder="例：ENEOS"><select id="rCat" class="in"></select></div><button type="button" class="ghostb wide" id="rAdd">ルールを追加</button></details>
+    </section>
+    <section class="card"><h2>カテゴリ</h2><div class="seg full" id="cType" style="margin-bottom:6px"><button type="button" data-t="expense" class="on">支出</button><button type="button" data-t="income">収入</button></div><div id="catList"></div>
+      <div class="f2" style="margin-top:8px"><input type="text" id="cName" class="in" placeholder="新しいカテゴリ"><button type="button" class="ghostb" id="cAdd">追加</button></div></section>
+    <section class="card"><h2>バックアップ</h2>
+      <div class="sub2"><button type="button" class="ghostb" id="expBtn">データを書き出す</button><button type="button" class="ghostb" id="impBtn">書き出したデータを読み込む</button><button type="button" class="ghostb" id="csvOut">表計算用（CSV）で保存</button></div>
+      <div id="ioBox"></div>
+      <details class="fold"><summary>この端末のデータを消す</summary><p class="note">この端末の家計簿を空にします。Googleドライブのファイルと、家族の端末のデータは消えません。</p><button type="button" class="ghostb neg wide" id="wipe">この端末のデータを消す</button></details>
+    </section>
+    <section class="card faq"><h2>使い方とよくある質問</h2>
+      <details><summary>レシートの入力のしかた</summary><div class="a">「入力」でお店と日付を選び、品目ごとに品名・カテゴリ・金額を入れます。1回の買い物でカテゴリが分かれるとき（食費と日用品など）も1枚のレシートにまとめて登録できます。合計だけでよければ、品目は1行で大丈夫です。</div></details>
+      <details><summary>税抜の値段で入れたい</summary><div class="a">「税抜 8%」「税抜 10%」を選ぶと、レシートと同じく税率ごとに合計してから消費税（1円未満切り捨て）を足します。食費は自動で8%になります。ほかのカテゴリも「設定・共有」のカテゴリで税率を決めておくと、カテゴリを選んだときに自動で切り替わります。行ごとに変えることもできます。</div></details>
+      <details><summary>キーボードで速く入れたい</summary><div class="a">はじめは「品名をまとめて」入れる順になっています。品名を入れてEnter（キーボードの「次へ」）を押すと次の行の品名へ進み、品名が空のままEnterを押すと1行目の金額へ移ります。金額も同じように下へ進み、最後の金額でEnterを押すとキーボードが閉じて合計が見えます。入力画面の右上の「入れ方」を「1品ずつ」にすると、カテゴリ→品名→個数→金額の順に1行ずつ進みます。候補が出ているときは、↓↑キー（パソコンはTabでも）で選んでEnterで決まります。</div></details>
+      <details><summary>前に買ったものを早く入れたい</summary><div class="a">品名を入れ始めると、前に入れた品名が候補に出ます。選ぶと前回のカテゴリと値段が自動で入ります。お店の名前もよく行く順に候補に出ます。</div></details>
+      <details><summary>家族で同じ家計簿を使うには</summary><div class="a">1人目が「設定・共有」で「共有ファイルを作る」→「家族を招待」に相手のGoogleアカウントのメールアドレスを入れます。2人目は自分のスマホでこの家計簿を開き、「家族が作ったファイルを選ぶ」から招待されたファイルを選びます。そのあとは入力するたびに自動で同期します。開いたときは「今すぐ同期」を押すと最新になります。</div></details>
+      <details><summary>同じものを2人が同時に直したら？</summary><div class="a">記録ごとに、あとから保存したほうが残ります。別々の記録を同時に入れたときは、両方とも残ります。</div></details>
+      <details><summary>Googleドライブの中身を見られることはありますか？</summary><div class="a">この家計簿が使えるのは、この家計簿で作ったファイルと、あなたが選んだファイルだけです（drive.file という最小限の権限）。ほかのファイルを読んだり変更したりすることはできません。連携はGoogleアカウントの「サードパーティ製のアプリとサービス」からいつでも解除できます。くわしくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</div></details>
+      <details><summary>機種変更するときは</summary><div class="a">Googleドライブで同期していれば、新しいスマホで「家族が作ったファイルを選ぶ」（自分で作った場合も同じ）から同じファイルを選ぶだけです。同期していない場合は「データを書き出す」でできた文字を新しいスマホの「読み込む」に貼り付けます。</div></details>
+      <details><summary>値引きや容量を入れたい</summary><div class="a">品目の右の「値引き・容量」を押すと、値引き額と容量（g・mL・個）を入れられます。容量を入れておくと「振り返り」の「底値」で、100gあたり・100mLあたりの値段をお店ごとに比べられます。次に同じ品名を入れたときは、容量も自動で入ります。</div></details>
+      <details><summary>底値帳の使い方</summary><div class="a">「振り返り」→「底値」で品名を入れると、これまでに買った値段が安い順に並び、いちばん安かったお店と日付がわかります。品名に含まれる言葉で探すので、「牛乳」で「牛乳 1L」や「低脂肪牛乳」もまとめて出ます。漢字とひらがなはまとめられないので、品名の書き方はそろえておくと便利です。</div></details>
+      <details><summary>途中まで入れたレシートをあとで続けたい</summary><div class="a">入力画面の右上の「一時保存」を押すと、入力中の内容をこの端末に5件まで取っておけます。「復元」から続きを入れられます。</div></details>
+      <details><summary>サブスクも管理したい</summary><div class="a">定額サービスの請求日や無料期間の管理は、別のツール<a href="tool.html?id=subsc">「サブスク管理」</a>が向いています（別売り）。</div></details>
+      <details><summary>ホーム画面に置きたい</summary><div class="a">iPhoneはSafariの共有ボタンから「ホーム画面に追加」、AndroidはChromeのメニューから「ホーム画面に追加」で、アプリのように開けます。</div></details>
+    </section>
+  </section>
+</div>
+
+<nav class="tabbar no-print" aria-label="家計簿のメニュー"><div>
+  <button type="button" data-v="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 10.5L12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/></svg>ホーム</button>
+  <button type="button" data-v="input" class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>入力</button>
+  <button type="button" data-v="memo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M8.5 10l1.5 1.5 3-3M8.5 16h7"/></svg>メモ</button>
+  <button type="button" data-v="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/></svg>振り返り</button>
+  <button type="button" data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>設定・共有</button>
+</div></nav>
+<div class="toast" id="toast"></div>
+<ul class="dd" id="dd" role="listbox"></ul>
+
+<script>
+// 家計簿（そらのツール箱）計算ロジック
+(function (root) {
+  const COLS = ["tx", "cats", "budgets", "goals", "rules", "memo"];
+  const num = v => { const x = Number(String(v == null ? "" : v).replace(/[,，円¥\s]/g, "")); return isFinite(x) ? x : 0; };
+  const pad = n => String(n).padStart(2, "0");
+  const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const ymOf = s => String(s || "").slice(0, 7);
+  const addYm = (ym, k) => { const [y, m] = ym.split("-").map(Number); const d = new Date(y, m - 1 + k, 1); return d.getFullYear() + "-" + pad(d.getMonth() + 1); };
+  let seq = 0;
+  const uid = p => (p || "x") + Date.now().toString(36) + (seq++).toString(36) + Math.random().toString(36).slice(2, 6);
+
+  const PALETTE = ["#2F6FDB", "#E0703A", "#2E9E6A", "#C2457A", "#8A63D2", "#D4A017", "#1B9AAA", "#7A8B99", "#B5543C", "#5B8C2A", "#E25D8F", "#3D4F9F", "#F2A541", "#0F7B6C", "#A0522D", "#6C9BD2", "#9AA5B1", "#D0607A"];
+  const DEF_EXP = ["食費", "日用品", "外食", "交通", "住まい", "水道・光熱", "通信", "医療", "衣服・美容", "趣味・娯楽", "交際", "教育", "保険", "子ども", "車", "税・社会保険", "その他"];
+  const DEF_INC = ["給与", "賞与", "副収入", "その他の収入"];
+  function defaultCats(now) {
+    const t = now || 0, out = [];
+    DEF_EXP.forEach((n, i) => out.push(Object.assign({ id: "c_e" + i, name: n, type: "expense", color: PALETTE[i % PALETTE.length], order: i, updatedAt: t }, n === "食費" ? { tax: "8" } : {})));
+    DEF_INC.forEach((n, i) => out.push({ id: "c_i" + i, name: n, type: "income", color: PALETTE[(i + 2) % PALETTE.length], order: 100 + i, updatedAt: t }));
+    return out;
+  }
+  function empty() { return { v: 1, tx: [], cats: defaultCats(0), budgets: [], goals: [], rules: [], memo: [] }; }
+  function norm(s) {
+    const o = Object.assign(empty(), s && typeof s === "object" ? s : {});
+    COLS.forEach(k => { if (!Array.isArray(o[k])) o[k] = k === "cats" ? defaultCats(0) : []; });
+    o.tx = o.tx.filter(t => t && t.id).map(t => Object.assign({ type: "expense", amount: 0, cat: "その他", item: "", shop: "", qty: 1, rid: t.id, memo: "", by: "" }, t, { amount: Math.round(num(t.amount)) }));
+    return o;
+  }
+  const live = a => (a || []).filter(x => !x.del);
+
+  // ---- 消費税：同じ税率の行を合計してから1円未満切り捨て（レシートと同じ）----
+  // rows: [{amount, rate}] mode: "incl"（税込で入力）| 8 | 10（税抜で入力・行ごとに rate 上書き可）
+  function receipt(rows, mode) {
+    const out = rows.map(r => ({ amount: Math.max(0, Math.round(num(r.amount) * Math.max(1, num(r.qty) || 1)) - Math.round(Math.abs(num(r.disc)))), rate: r.rate == null || r.rate === "" ? (mode === "incl" ? 0 : Number(mode)) : Number(r.rate) }));
+    if (mode === "incl") { const total = out.reduce((a, r) => a + r.amount, 0); return { incl: out.map(r => r.amount), total, tax: {} }; }
+    const incl = out.map(r => r.amount), groups = {}, tax = {};
+    out.forEach((r, i) => { if (!r.rate) return; (groups[r.rate] = groups[r.rate] || []).push(i); });
+    Object.keys(groups).forEach(rate => {
+      const idx = groups[rate], base = idx.reduce((a, i) => a + out[i].amount, 0), t = Math.floor(base * Number(rate) / 100);
+      tax[rate] = t; let given = 0;
+      idx.forEach((i, k) => { const share = k === idx.length - 1 ? t - given : Math.floor(out[i].amount * Number(rate) / 100); given += share; incl[i] = out[i].amount + share; });
+    });
+    return { incl, total: incl.reduce((a, b) => a + b, 0), tax };
+  }
+
+  // ---- 集計 ----
+  const inYm = (t, ym) => ymOf(t.date) === ym;
+  function catMap(s) { const m = {}; live(s.cats).forEach(c => { m[c.type + ":" + c.name] = c; }); return m; }
+  function month(s, ym) {
+    const tx = live(s.tx).filter(t => inYm(t, ym)), cm = catMap(s);
+    let inc = 0, exp = 0; const by = {};
+    tx.forEach(t => { if (t.type === "income") inc += t.amount; else { exp += t.amount; by[t.cat] = (by[t.cat] || 0) + t.amount; } });
+    const bud = {}; live(s.budgets).forEach(b => { if (b.amount > 0) bud[b.cat] = b.amount; });
+    Object.keys(bud).forEach(c => { if (!(c in by)) by[c] = 0; });
+    const cats = Object.keys(by).map(c => ({ cat: c, amount: by[c], color: (cm["expense:" + c] || {}).color || "#7A8B99", budget: bud[c] || 0 }))
+      .sort((a, b) => b.amount - a.amount || b.budget - a.budget);
+    const budTotal = Object.values(bud).reduce((a, b) => a + b, 0);
+    const budUsed = Object.keys(bud).reduce((a, c) => a + (by[c] || 0), 0);
+    const [y, m] = ym.split("-").map(Number), days = new Date(y, m, 0).getDate();
+    return { ym, income: inc, expense: exp, balance: inc - exp, cats, budget: budTotal, budgetUsed: budUsed, days, count: tx.length };
+  }
+  // 日ごと → レシート（rid）ごと
+  function days(s, ym, list) {
+    const tx = list || live(s.tx).filter(t => inYm(t, ym)), byDate = {};
+    tx.forEach(t => { const d = (byDate[t.date] = byDate[t.date] || {}); const r = (d[t.rid] = d[t.rid] || { rid: t.rid, date: t.date, type: t.type, shop: t.shop, by: t.by, rows: [], total: 0, at: 0 }); r.rows.push(t); r.total += t.amount; r.at = Math.max(r.at, t.createdAt || t.updatedAt || 0); if (!r.shop && t.shop) r.shop = t.shop; });
+    return Object.keys(byDate).sort().reverse().map(date => {
+      const rs = Object.values(byDate[date]).sort((a, b) => b.at - a.at);
+      return { date, receipts: rs, income: rs.filter(r => r.type === "income").reduce((a, r) => a + r.total, 0), expense: rs.filter(r => r.type !== "income").reduce((a, r) => a + r.total, 0) };
+    });
+  }
+  function trend(s, endYm, n) {
+    const months = []; for (let i = n - 1; i >= 0; i--) months.push(addYm(endYm, -i));
+    const idx = {}; months.forEach((m, i) => { idx[m] = i; });
+    const inc = months.map(() => 0), exp = months.map(() => 0), cat = {};
+    live(s.tx).forEach(t => { const i = idx[ymOf(t.date)]; if (i == null) return; if (t.type === "income") inc[i] += t.amount; else { exp[i] += t.amount; (cat[t.cat] = cat[t.cat] || months.map(() => 0))[i] += t.amount; } });
+    return { months, income: inc, expense: exp, cats: cat };
+  }
+  function yoy(s, year) {
+    const a = Array(12).fill(0), b = Array(12).fill(0), ai = Array(12).fill(0), bi = Array(12).fill(0);
+    live(s.tx).forEach(t => { const y = Number(t.date.slice(0, 4)), m = Number(t.date.slice(5, 7)) - 1; const inc = t.type === "income"; if (y === year) (inc ? ai : a)[m] += t.amount; else if (y === year - 1) (inc ? bi : b)[m] += t.amount; });
+    return { year, expense: a, lastExpense: b, income: ai, lastIncome: bi };
+  }
+  function shops(s, from, to) {
+    const m = {};
+    live(s.tx).forEach(t => { if (t.type === "income" || !t.shop || t.date < from || t.date > to) return; const x = (m[t.shop] = m[t.shop] || { shop: t.shop, total: 0, rids: {} }); x.total += t.amount; x.rids[t.rid] = 1; });
+    return Object.values(m).map(x => ({ shop: x.shop, total: x.total, count: Object.keys(x.rids).length, avg: Math.round(x.total / Object.keys(x.rids).length) })).sort((a, b) => b.total - a.total);
+  }
+  function search(s, q, opt) {
+    const o = opt || {}, words = String(q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return live(s.tx).filter(t => {
+      if (o.type && t.type !== o.type) return false;
+      if (o.cat && t.cat !== o.cat) return false;
+      if (o.from && t.date < o.from) return false;
+      if (o.to && t.date > o.to) return false;
+      const hay = [t.item, t.shop, t.cat, t.memo, String(t.amount)].join(" ").toLowerCase();
+      return words.every(w => hay.includes(w));
+    }).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  }
+  // 入力候補：お店（よく使う順）、品名→前回のカテゴリと金額
+  function suggest(s) {
+    const shopN = {}, items = {};
+    live(s.tx).forEach(t => {
+      if (t.shop) shopN[t.shop] = (shopN[t.shop] || 0) + 1;
+      if (t.item) { const k = t.type + ":" + t.item, p = items[k]; if (!p || p.date <= t.date) items[k] = Object.assign({ item: t.item, type: t.type, cat: t.cat, unit: Math.round(t.amount / (t.qty || 1)), date: t.date, n: (p ? p.n : 0) + 1 }, t.uval ? { uval: t.uval, utype: t.utype } : {}); else p.n++; }
+    });
+    return { shops: Object.keys(shopN).sort((a, b) => shopN[b] - shopN[a]), items: Object.values(items).sort((a, b) => b.n - a.n) };
+  }
+  // ---- 底値帳：容量あたりの値段 ----
+  function normName(x) {
+    return String(x || "").normalize("NFKC").toLowerCase().replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60)).replace(/[\s・･\-ー－_]/g, "");
+  }
+  // 100g・100mLあたり、個は1個あたり（税込・値引き後）
+  function unitPrice(t) {
+    const v = num(t.uval), q = Math.max(1, num(t.qty) || 1); if (!(v > 0)) return null;
+    const per = t.utype === "個" ? 1 : 100;
+    return Math.round(t.amount / (v * q) * per * 10) / 10;
+  }
+  const unitLabel = u => u === "個" ? "1個あたり" : u === "mL" ? "100mLあたり" : "100gあたり";
+  function priceBook(s, q, from) {
+    const key = normName(q); if (!key) return { rows: [], best: null, shops: [] };
+    const rows = live(s.tx).filter(t => t.type !== "income" && t.item && normName(t.item).includes(key) && (!from || t.date >= from))
+      .map(t => ({ id: t.id, rid: t.rid, date: t.date, shop: t.shop || "", item: t.item, qty: t.qty || 1, amount: t.amount, each: Math.round(t.amount / (t.qty || 1)), utype: t.utype || "", uval: num(t.uval) || 0, up: unitPrice(t) }));
+    // 比べる単位：いちばん多い単位（容量なしは1点あたりで比べる）
+    const cnt = {}; rows.forEach(r => { const k = r.up == null ? "" : r.utype; cnt[k] = (cnt[k] || 0) + 1; });
+    const unit = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || "";
+    const val = r => (unit && r.up != null && r.utype === unit) ? r.up : (!unit ? r.each : null);
+    rows.sort((a, b) => { const x = val(a), y = val(b); if (x == null && y == null) return a.date < b.date ? 1 : -1; if (x == null) return 1; if (y == null) return -1; return x - y || (a.date < b.date ? 1 : -1); });
+    const best = rows.find(r => val(r) != null) || null;
+    const sm = {}; rows.forEach(r => { const v = val(r); if (v == null) return; const k = r.shop || "（お店なし）"; if (!sm[k] || v < sm[k].v) sm[k] = { shop: k, v, date: r.date }; });
+    return { rows, best, unit, label: unit ? unitLabel(unit) : "1点あたり", val, shops: Object.values(sm).sort((a, b) => a.v - b.v) };
+  }
+  function priceItems(s) {
+    const m = {};
+    live(s.tx).forEach(t => { if (t.type === "income" || !t.item) return; const k = normName(t.item); const x = (m[k] = m[k] || { item: t.item, n: 0, last: "", unit: false }); x.n++; if (t.date >= x.last) { x.last = t.date; x.item = t.item; } if (t.uval) x.unit = true; });
+    return Object.values(m).filter(x => x.n >= 2 || x.unit).sort((a, b) => b.n - a.n);
+  }
+
+  function goal(g, ym) {
+    const saved = num(g.saved), target = num(g.target), left = Math.max(0, target - saved);
+    let months = 0, per = 0;
+    if (g.deadline && left > 0) { const [y, m] = ym.split("-").map(Number), [gy, gm] = g.deadline.split("-").map(Number); months = Math.max(1, (gy - y) * 12 + (gm - m) + 1); per = Math.ceil(left / months); }
+    return { saved, target, left, pct: target ? Math.min(100, Math.round(saved / target * 100)) : 0, months, per };
+  }
+
+  // ---- 銀行・カードの明細CSV ----
+  function parseCSV(text) {
+    const rows = []; let row = [], cur = "", q = false;
+    const t = String(text || "").replace(/^﻿/, "");
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (q) { if (c === '"') { if (t[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; continue; }
+      if (c === '"') q = true; else if (c === "," || c === "\t") { row.push(cur); cur = ""; } else if (c === "\n" || c === "\r") { if (c === "\r" && t[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; } else cur += c;
+    }
+    if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+    return rows.map(r => r.map(x => x.trim())).filter(r => r.some(x => x !== ""));
+  }
+  function toDate(v) {
+    const s = String(v || "").replace(/[年月.\/]/g, "-").replace(/日/, "").trim(); let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (!m) { m = s.match(/^(\d{4})(\d{2})(\d{2})$/); }
+    if (!m) { const r = s.match(/^R(\d{1,2})-(\d{1,2})-(\d{1,2})/i); if (r) m = [0, 2018 + Number(r[1]), r[2], r[3]]; }
+    if (!m) return "";
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return isNaN(d) || d.getDate() !== Number(m[3]) ? "" : ymd(d);
+  }
+  const H_DATE = /(利用日|取引日|日付|年月日|ご利用日|お取引日|計上日|購入日|date)/i;
+  const H_DESC = /(利用店|店名|内容|摘要|お取引内容|ご利用先|利用先|明細|備考|description|加盟店)/i;
+  const H_OUT = /(出金|支払|お支払|ご利用金額|利用金額|引出|払出|金額|amount)/i;
+  const H_IN = /(入金|預入|お預り|受取)/i;
+  function detect(rows) {
+    for (let h = 0; h < Math.min(rows.length, 15); h++) {
+      const r = rows[h]; let di = -1, si = -1, oi = -1, ii = -1;
+      r.forEach((c, i) => { if (di < 0 && H_DATE.test(c)) di = i; else if (ii < 0 && H_IN.test(c)) ii = i; else if (oi < 0 && H_OUT.test(c) && !/残高|手数料/.test(c)) oi = i; else if (si < 0 && H_DESC.test(c)) si = i; });
+      if (di >= 0 && (oi >= 0 || ii >= 0)) return { header: h, date: di, desc: si, out: oi, inc: ii };
+    }
+    // 見出しなし：日付っぽい列と数字の列で推測
+    const r = rows.find(x => x.some(c => toDate(c))); if (!r) return null;
+    const di = r.findIndex(c => toDate(c)); let oi = -1, si = -1;
+    r.forEach((c, i) => { if (i === di) return; if (oi < 0 && /^-?[\d,]+$/.test(c.replace(/[円¥\s]/g, "")) && num(c)) oi = i; else if (si < 0 && c && !/^[\d,.\-\/]+$/.test(c)) si = i; });
+    return oi < 0 ? null : { header: -1, date: di, desc: si, out: oi, inc: -1 };
+  }
+  function ruleCat(s, desc, type) {
+    const d = String(desc || "").toLowerCase();
+    const r = live(s.rules).filter(x => x.kw && d.includes(String(x.kw).toLowerCase())).sort((a, b) => String(b.kw).length - String(a.kw).length)[0];
+    if (r) return r.cat;
+    const it = suggest(s).items.find(x => x.type === type && x.item && d === x.item.toLowerCase());
+    return it ? it.cat : (type === "income" ? "その他の収入" : "その他");
+  }
+  function importCSV(s, text) {
+    const rows = parseCSV(text), c = detect(rows);
+    if (!c) return { ok: false, items: [], msg: "日付と金額の列が見つかりませんでした。" };
+    const have = {}; live(s.tx).forEach(t => { have[t.date + "|" + t.amount + "|" + (t.item || t.shop)] = 1; });
+    const items = [], body = rows.slice(c.header + 1);
+    // 金額が1列だけのとき：マイナスが多ければ「マイナス＝支出」（銀行）、少なければ「マイナス＝返金・入金」（カード）
+    const negs = c.inc < 0 ? body.filter(r => num(r[c.out]) < 0).length : 0, poss = c.inc < 0 ? body.filter(r => num(r[c.out]) > 0).length : 0;
+    const negIsExpense = negs > poss;
+    body.forEach(r => {
+      const date = toDate(r[c.date]); if (!date) return;
+      let out = c.out >= 0 ? num(r[c.out]) : 0, inc = c.inc >= 0 ? num(r[c.inc]) : 0;
+      let type = "expense", amount = out;
+      if (!out && inc) { type = "income"; amount = inc; }
+      if (c.inc < 0) { if (negIsExpense) type = out < 0 ? "expense" : "income"; else type = out < 0 ? "income" : "expense"; }
+      amount = Math.round(Math.abs(amount)); if (!amount) return;
+      const desc = c.desc >= 0 ? r[c.desc] : "";
+      items.push({ date, type, amount, item: desc, cat: ruleCat(s, desc, type), dup: !!have[date + "|" + amount + "|" + desc] });
+    });
+    return { ok: items.length > 0, items, msg: items.length ? "" : "取り込める行がありませんでした。" };
+  }
+
+  // ---- 同期（Googleドライブ）：項目ごとに新しいほうを残す ----
+  const TOMB = 90 * 24 * 3600 * 1000;
+  function mergeCol(a, b, now) {
+    const m = {}; let cl = false, cr = false;
+    (a || []).forEach(x => { m[x.id] = { l: x }; });
+    (b || []).forEach(x => { (m[x.id] = m[x.id] || {}).r = x; });
+    const list = [];
+    Object.keys(m).forEach(id => {
+      const { l, r } = m[id]; let w;
+      if (l && r) { const lu = l.updatedAt || 0, ru = r.updatedAt || 0; if (lu === ru) { w = l; if (JSON.stringify(l) !== JSON.stringify(r)) { w = JSON.stringify(l) > JSON.stringify(r) ? l : r; if (w === r) cl = true; else cr = true; } } else if (ru > lu) { w = r; cl = true; } else { w = l; cr = true; } }
+      else if (l) { w = l; cr = true; } else { w = r; cl = true; }
+      if (w.del && now - (w.updatedAt || 0) > TOMB) return;
+      list.push(w);
+    });
+    return { list, cl, cr };
+  }
+  function syncMerge(local, remote, now) {
+    const t = now || Date.now(), L = norm(local), R = remote ? norm(remote) : null, out = { v: 1 };
+    let changedLocal = false, changedRemote = !R;
+    COLS.forEach(k => { const r = mergeCol(L[k], R ? R[k] : [], t); out[k] = r.list; if (r.cl) changedLocal = true; if (r.cr) changedRemote = true; });
+    return { state: out, changedLocal, changedRemote };
+  }
+  const packDrive = s => JSON.stringify({ app: "sora-kakeibo", v: 1, savedAt: Date.now(), data: s });
+  function unpackDrive(text) {
+    if (!text || !String(text).trim()) return null;
+    const j = JSON.parse(text); if (!j || j.app !== "sora-kakeibo") throw new Error("このファイルは家計簿のデータではありません。");
+    return norm(j.data);
+  }
+  const exportData = s => JSON.stringify({ app: "sora-kakeibo", v: 1, exportedAt: Date.now(), data: s });
+  function importData(text) { const j = JSON.parse(String(text).trim()); if (!j || j.app !== "sora-kakeibo") throw new Error("家計簿の書き出しデータではありません。"); return norm(j.data); }
+  function toCSV(s, from, to) {
+    const q = v => { const x = String(v == null ? "" : v); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+    const rows = [["日付", "収支", "カテゴリ", "品名", "お店", "数量", "金額", "メモ", "入力した人"]];
+    live(s.tx).filter(t => (!from || t.date >= from) && (!to || t.date <= to)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+      .forEach(t => rows.push([t.date, t.type === "income" ? "収入" : "支出", t.cat, t.item, t.shop, t.qty || 1, t.amount, t.memo, t.by]));
+    return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
+  }
+
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, normName, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
+})(this);
+
+(function () {
+  const K = KakeiboCalc, $ = id => document.getElementById(id);
+  const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const yen = v => Math.round(v).toLocaleString("ja-JP") + "円";
+  const KEY = "sora.kakeibo.v1", PKEY = "sora.kakeibo.prefs";
+  const DEMO = true, BUY = "https://note.com/tmsora8496/n/n76c5e7c5bfd1";
+  let S; try { S = DEMO ? sample() : K.norm(JSON.parse(localStorage.getItem(KEY) || "null")); } catch (e) { S = K.norm(null); }
+  let P = {}; try { P = DEMO ? { name: "そら" } : JSON.parse(localStorage.getItem(PKEY) || "{}") || {}; } catch (e) { P = {}; }
+  const save = () => { if (DEMO) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast("保存できませんでした（端末の空き容量を確認してください）"); } };
+  const psave = () => { if (DEMO) return; try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {} };
+  // お試し版の見本データ（今月と過去11か月）
+  function sample() {
+    const st = K.norm(null), now = new Date(), Y = now.getFullYear(), M = now.getMonth(), D = now.getDate(); let n = 0;
+    const day = (m, d) => K.ymd(new Date(Y, M - m, d));
+    const add = (date, shop, rows, by, type) => { const rid = "dr" + n++; rows.forEach(([cat, item, amt, qty, uval, utype]) => st.tx.push({ id: "dt" + n++, rid, date, type: type || "expense", shop, cat, item, amount: amt, qty: qty || 1, uval: uval || 0, utype: utype || "", by, updatedAt: 1, createdAt: n })); };
+    const food = [["牛乳", 213, 1000, "mL"], ["卵", 258, 10, "個"], ["食パン", 178], ["鶏むね肉", 498, 600, "g"], ["キャベツ", 198], ["豆腐", 88, 300, "g"], ["納豆", 98], ["バナナ", 158], ["ヨーグルト", 168, 400, "g"], ["豚こま", 598, 400, "g"], ["お米", 2980, 5000, "g"], ["にんじん", 128]];
+    const shops = [["イオン", "妻"], ["業務スーパー", "夫"], ["コープ", "妻"], ["ドラッグストア", "夫"]];
+    for (let m = 11; m >= 0; m--) {
+      const last = m ? new Date(Y, M - m + 1, 0).getDate() : D, f = 0.9 + ((m * 7) % 5) / 20;
+      for (let d = 1; d <= last; d++) {
+        if (!(d % 2 === 0 || d % 3 === 0)) continue; const [sh, by] = shops[(d + m) % 4], rows = [];
+        for (let k = 0; k < 2 + ((d + m) % 4); k++) { const x = food[(d + k * 5 + m) % food.length]; const shopAdj = sh === "業務スーパー" ? 0.88 : sh === "ドラッグストア" ? 0.95 : 1; rows.push(["食費", x[0], Math.round(x[1] * shopAdj * f), 1, x[2], x[3]]); }
+        if (d % 5 === 0) rows.push(["日用品", "ティッシュ", 328]); if (d % 9 === 0) rows.push(["日用品", "洗剤", 398, 1, 900, "g"]);
+        add(day(m, d), sh, rows, by);
+      }
+      add(day(m, Math.min(25, last)), "会社", [["給与", "給料", 312000]], "そら", "income");
+      if (m && (M - m + 12) % 12 === 5) add(day(m, 10), "会社", [["賞与", "夏のボーナス", 420000]], "そら", "income");
+      add(day(m, Math.min(3, last)), "ENEOS", [["車", "ガソリン", Math.round(5800 * f)]], "夫");
+      if (last >= 15) add(day(m, 15), "ENEOS", [["車", "ガソリン", Math.round(5200 * f)]], "夫");
+      if (last >= 8) add(day(m, 8), "サイゼリヤ", [["外食", "家族でランチ", Math.round(3480 * f)]], "妻");
+      if (last >= 20) add(day(m, 20), "スシロー", [["外食", "回転寿司", Math.round(4260 * f)]], "夫");
+      const winter = [0, 1, 2, 11].includes((M - m + 12) % 12) ? 1.4 : 1;
+      if (last >= 10) add(day(m, 10), "電力会社", [["水道・光熱", "電気代", Math.round(8200 * winter * f)]], "夫");
+      if (last >= 12) add(day(m, 12), "ガス会社", [["水道・光熱", "ガス代", Math.round(4300 * winter * f)]], "夫");
+      add(day(m, Math.min(5, last)), "携帯会社", [["通信", "スマホ2台", 6380]], "妻");
+      if (last >= 18 && m % 2 === 0) add(day(m, 18), "ユニクロ", [["衣服・美容", "子どもの服", 2990]], "妻");
+    }
+    [["食費", 45000], ["日用品", 6000], ["外食", 8000], ["車", 12000], ["水道・光熱", 18000], ["通信", 8000], ["衣服・美容", 5000]].forEach(([c, a]) => st.budgets.push({ id: "b_" + c, cat: c, amount: a, updatedAt: 1 }));
+    st.goals.push({ id: "g1", name: "家族旅行", target: 300000, saved: 120000, deadline: K.ymd(new Date(Y, M + 6, 1)).slice(0, 7), updatedAt: 1 });
+    ["牛乳", "卵", "トイレットペーパー"].forEach((x, i) => st.memo.push({ id: "m" + i, text: x, done: false, by: i ? "夫" : "妻", createdAt: i, updatedAt: 1 }));
+    st.rules.push({ id: "u1", kw: "ENEOS", cat: "車", updatedAt: 1 });
+    return st;
+  }
+  const now = () => Date.now();
+  const today = () => K.ymd(new Date());
+  let ym = today().slice(0, 7), view = "home", rpTab = "trend", cType = "expense";
+  let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 2200); }
+  const cats = type => K.live(S.cats).filter(c => c.type === type).sort((a, b) => a.order - b.order);
+  const color = (type, name) => (K.live(S.cats).find(c => c.type === type && c.name === name) || {}).color || "#7A8B99";
+  const catOpts = (type, sel) => { const l = cats(type).map(c => c.name); if (sel && !l.includes(sel)) l.push(sel); return l.map(n => `<option${n === sel ? " selected" : ""}>${esc(n)}</option>`).join(""); };
+  const mLabel = m => { const [y, mo] = m.split("-"); return y + "年" + Number(mo) + "月"; };
+  const md = d => Number(d.slice(5, 7)) + "/" + Number(d.slice(8, 10)) + "（" + "日月火水木金土"[new Date(d + "T00:00").getDay()] + "）";
+  function changed() { save(); renderAll(); autoSync(); }
+
+  // ---- 画面切り替え ----
+  function go(v) {
+    if (v !== "input" && F && F.rid) F = null;
+    view = v;
+    document.body.classList.remove("kb");
+    document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === "v-" + v));
+    document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+    if (v === "input" && !F) newForm();
+    renderAll(); window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => { if (b.dataset.v === "input" && view === "input" && F && F.rid) return; go(b.dataset.v); });
+
+  // ---- ホーム ----
+  document.querySelectorAll(".mnav button").forEach(b => b.onclick = () => { ym = K.addYm(ym, Number(b.dataset.m)); renderHome(); });
+  function renderHome() {
+    $("mLabel").textContent = mLabel(ym);
+    const m = K.month(S, ym), cur = ym === today().slice(0, 7), day = cur ? Number(today().slice(8)) : m.days;
+    let pace = "";
+    if (m.budget) {
+      const bu = m.budgetUsed, used = Math.min(100, Math.round(bu / m.budget * 100)), ideal = Math.round(m.budget * day / m.days), diff = bu - ideal;
+      const left = m.budget - bu, daysLeft = m.days - day + 1;
+      pace = `<div class="meter${bu > m.budget ? " over" : ""}"><i style="width:${used}%"></i>${cur ? `<u style="left:${Math.round(day / m.days * 100)}%"></u>` : ""}</div>
+        <div class="pace">予算を決めたカテゴリ：${yen(m.budget)} のうち ${used}%${cur ? (left >= 0 ? `。残り${daysLeft}日で <b>${yen(left)}</b>（1日あたり${yen(Math.floor(left / daysLeft))}）` : `。予算を <b>${yen(-left)}</b> こえています`) + `<br>今日までの目安より ${diff > 0 ? yen(diff) + "多く" : yen(-diff) + "少なく"}使っています` : (left >= 0 ? `。${yen(left)}残りました` : `。${yen(-left)}こえました`)}</div>`;
+    }
+    $("sum").innerHTML = `<div class="k">${mLabel(ym)}の支出</div><div class="big">${yen(m.expense)}</div>
+      <div class="grid"><div><span class="k">収入</span><b>${yen(m.income)}</b></div><div><span class="k">収入 − 支出</span><b>${m.balance < 0 ? "−" : ""}${yen(Math.abs(m.balance))}</b></div></div>${pace}`;
+    const max = Math.max(1, ...m.cats.map(c => Math.max(c.amount, c.budget)));
+    $("cats").innerHTML = m.cats.length ? m.cats.map(c => `<div class="cbar"><span class="dot" style="background:${c.color}"></span><span>${esc(c.cat)}</span><span><b>${yen(c.amount)}</b>${c.budget ? ` <span class="b${c.amount > c.budget ? " over" : ""}">/ ${yen(c.budget)}</span>` : ""}</span><div class="t"><i style="width:${Math.round(c.amount / max * 100)}%;background:${c.amount > c.budget && c.budget ? "var(--neg)" : c.color}"></i></div></div>`).join("") : `<p class="empty">この月の支出はまだありません。</p>`;
+    const ds = K.days(S, ym);
+    $("dayList").innerHTML = ds.length ? ds.map(d => `<div class="day"><span>${md(d.date)}</span><span>${d.expense ? "支出 " + yen(d.expense) : ""}${d.income ? "　収入 " + yen(d.income) : ""}</span></div>` + d.receipts.map(rcHtml).join("")).join("")
+      : `<p class="empty">${cur ? "まだ記録がありません。下の「＋ 入力」から、今日の買い物を1件入れてみましょう。" : "この月の記録はありません。"}</p>`;
+  }
+  function rcHtml(r) {
+    const items = r.rows.map(t => t.item).filter(Boolean), cs = [...new Set(r.rows.map(t => t.cat))];
+    const title = r.shop || items[0] || cs[0], desc = (r.shop ? items : items.slice(1)).join("、");
+    return `<button type="button" class="rc" data-rid="${esc(r.rid)}"><div class="top"><span class="nm">${esc(title)}</span><span class="amt${r.type === "income" ? " inc" : ""}">${r.type === "income" ? "+" : ""}${yen(r.total)}</span></div>
+      <div class="ds">${cs.map(c => `<span class="chip">${esc(c)}</span>`).join("")}${esc(desc)}${r.by ? `<span style="float:right">${esc(r.by)}</span>` : ""}</div></button>`;
+  }
+  document.addEventListener("click", e => { const b = e.target.closest(".rc"); if (b) editReceipt(b.dataset.rid); });
+
+  // ---- 入力 ----
+  let F = null;
+  function newForm(type) {
+    F = { rid: null, type: type || (F && F.type) || "expense", date: (F && !F.rid && F.date) || today(), shop: "", tax: P.tax || "incl", memo: "", rows: [] };
+    F.rows.push(blankRow());
+    drawForm();
+  }
+  const blankRow = () => ({ id: null, disc: "", uval: "", utype: "g", more: false, item: "", cat: F.type === "income" ? (cats("income")[0] || {}).name || "給与" : (P.lastCat || "食費"), amount: "", qty: 1, rate: "", catTouched: false });
+  function editReceipt(rid) {
+    const tx = K.live(S.tx).filter(t => t.rid === rid); if (!tx.length) return;
+    F = { rid, type: tx[0].type, date: tx[0].date, shop: tx[0].shop || "", tax: "incl", memo: tx.find(t => t.memo) ? tx.find(t => t.memo).memo : "", rows: tx.map(t => ({ id: t.id, item: t.item, cat: t.cat, amount: Math.round((t.amount + (t.disc || 0)) / (t.qty || 1)), qty: t.qty || 1, rate: "", disc: t.disc || "", uval: t.uval || "", utype: t.utype || "g", more: !!(t.disc || t.uval), catTouched: true })) };
+    go("input"); drawForm();
+  }
+  let SG = { shops: [], items: [] };
+  const catTax = name => String((K.live(S.cats).find(c => c.type === "expense" && c.name === name) || {}).tax || "");
+  const fmtAmt = v => { const d = String(v == null ? "" : v).replace(/[^\d]/g, ""); return d ? Number(d).toLocaleString("ja-JP") : ""; };
+  function drawForm() {
+    $("inTitle").textContent = F.rid ? "記録を直す" : "入力";
+    $("inType").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.t === F.type));
+    $("inTax").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.x === String(F.tax)));
+    $("taxBox").style.display = F.type === "income" ? "none" : "";
+    $("shopBox").querySelector("label").textContent = F.type === "income" ? "どこから（なくても大丈夫）" : "お店";
+    $("inShop").placeholder = F.type === "income" ? "例：会社" : "例：スーパー";
+    $("inDate").value = F.date; $("inShop").value = F.shop; $("inMemo").value = F.memo;
+    $("saveBtn").textContent = F.rid ? "保存する" : "登録する";
+    $("editOps").style.display = F.rid ? "" : "none";
+    $("inTools").style.display = F.rid ? "none" : ""; $("draftOpen").textContent = "復元" + (drafts().length ? "（" + drafts().length + "）" : "");
+    $("modeBtn").textContent = P.mode !== "h" ? "入れ方：品名をまとめて" : "入れ方：1品ずつ";
+    SG = K.suggest(S);
+    const taxed = F.type !== "income" && F.tax !== "incl", inc = F.type === "income";
+    F.rows.forEach(r => { if (taxed && (r.rate === "" || r.rate == null)) r.rate = catTax(r.cat) || F.tax; if (!taxed) r.rate = ""; });
+    $("rows").innerHTML = F.rows.map((r, i) => `<div class="row" data-i="${i}">
+      <div class="r1"><input type="text" class="ct" value="${esc(r.cat)}" placeholder="カテゴリ" autocomplete="off" enterkeyhint="next" aria-label="カテゴリ"><input type="text" class="it" placeholder="${inc ? "例：11月分の給料" : "品名（例：牛乳）"}" value="${esc(r.item)}" autocomplete="off" enterkeyhint="next" aria-label="品名"></div>
+      <div class="r2">${inc ? "" : `<span class="qw">×<input type="text" class="qty" inputmode="numeric" value="${esc(r.qty)}" aria-label="個数" enterkeyhint="next">個</span>`}<span class="amw"><input type="text" class="am" inputmode="numeric" placeholder="金額" value="${esc(fmtAmt(r.amount))}" enterkeyhint="next" aria-label="金額">円</span>${taxed ? `<select class="rt" aria-label="税率">${[["8", "8%"], ["10", "10%"], ["0", "非課税"]].map(([v, l]) => `<option value="${v}"${String(r.rate) === v ? " selected" : ""}>${l}</option>`).join("")}</select>` : ""}${F.rows.length > 1 ? `<button type="button" class="x" aria-label="この行を削除">×</button>` : ""}</div>
+      ${inc ? "" : `<button type="button" class="more">${r.more ? "値引き・容量を閉じる" : "＋ 値引き・容量"}</button>`}
+      ${!inc && r.more ? `<div class="r3"><div><label>値引き（円）</label><input type="text" class="dc" inputmode="numeric" value="${esc(fmtAmt(r.disc))}" placeholder="0" enterkeyhint="next"></div><div><label>容量</label><input type="text" class="uv" inputmode="decimal" value="${esc(r.uval || "")}" placeholder="例：1000" enterkeyhint="next"></div><div><label>単位</label><select class="ut">${["g", "mL", "個"].map(u => `<option${u === (r.utype || "g") ? " selected" : ""}>${u}</option>`).join("")}</select></div></div><div class="upv"></div>` : ""}</div>`).join("");
+    calcTotal();
+  }
+  function readRows() {
+    if (!F) return;
+    F.date = $("inDate").value; F.shop = $("inShop").value.trim(); F.memo = $("inMemo").value.trim();
+    $("rows").querySelectorAll(".row").forEach(el => {
+      const r = F.rows[Number(el.dataset.i)]; if (!r) return;
+      r.item = el.querySelector(".it").value.trim(); r.amount = el.querySelector(".am").value.replace(/[^\d]/g, ""); r.cat = el.querySelector(".ct").value.trim();
+      const q = el.querySelector(".qty"); r.qty = q ? Math.max(1, Number(q.value.replace(/[^\d]/g, "")) || 1) : 1;
+      const rt = el.querySelector(".rt"); r.rate = rt ? rt.value : "";
+      const dc = el.querySelector(".dc"); if (dc) { r.disc = dc.value.replace(/[^\d]/g, ""); r.uval = el.querySelector(".uv").value.replace(/[^\d.]/g, ""); r.utype = el.querySelector(".ut").value; }
+    });
+  }
+  function calcTotal() {
+    readRows();
+    const rows = F.rows.filter(r => K.num(r.amount) > 0), mode = F.type === "income" ? "incl" : F.tax;
+    const rc = K.receipt(rows, mode);
+    $("tot").textContent = yen(rc.total);
+    let k = 0; $("rows").querySelectorAll(".row").forEach(el => { const r = F.rows[Number(el.dataset.i)], u = el.querySelector(".upv"); if (!r) return; const has = K.num(r.amount) > 0; const amt = has ? rc.incl[k++] : 0; if (!u) return; const up = has ? K.unitPrice({ amount: amt, qty: r.qty, uval: r.uval, utype: r.utype }) : null; u.textContent = up != null ? `${r.utype === "個" ? "1個" : "100" + r.utype}あたり ${up.toLocaleString("ja-JP")}円（税込）` : ""; });
+    const tx = Object.keys(rc.tax).filter(k => rc.tax[k]).map(k => `${k}% ${yen(rc.tax[k])}`).join("・");
+    $("totNote").textContent = F.type === "income" ? "収入の合計" : (tx ? "合計（うち消費税 " + tx + "）" : "合計");
+    return rc;
+  }
+
+  // ---- 入力候補（お店・カテゴリ・品名）と Enter で次へ ----
+  const DD = $("dd"); let ddFor = null, ddItems = [], ddAct = -1;
+  function ddShow(input, items) {
+    ddFor = input; ddItems = items.slice(0, 8); ddAct = -1;
+    if (!ddItems.length || document.activeElement !== input) { ddHide(); return; }
+    DD.innerHTML = ddItems.map((x, i) => `<li data-i="${i}"><span>${esc(x.label)}</span>${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</li>`).join("");
+    ddPlace(input); DD.classList.add("on");
+  }
+  function ddPlace(input) {
+    const r = input.getBoundingClientRect(), vv = window.visualViewport, vh = vv ? vv.height + vv.offsetTop : innerHeight, w = Math.max(r.width, 200);
+    DD.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px"; DD.style.width = w + "px";
+    if (vh - r.bottom < 170 && r.top > vh - r.bottom) { DD.style.top = "auto"; DD.style.bottom = (innerHeight - r.top + 4) + "px"; } else { DD.style.bottom = "auto"; DD.style.top = (r.bottom + 4) + "px"; }
+  }
+  function ddHide() { DD.classList.remove("on"); ddFor = null; ddItems = []; ddAct = -1; }
+  function ddHi(i) { const n = ddItems.length; if (!n) return; ddAct = (i + n) % n; DD.querySelectorAll("li").forEach((li, k) => li.classList.toggle("act", k === ddAct)); const a = DD.children[ddAct]; if (a) a.scrollIntoView({ block: "nearest" }); }
+  function ddPick(i) { const x = ddItems[i], inp = ddFor; if (!x) return; const pos = posOf(inp); ddHide(); x.pick(); moveFrom(pos); }
+  DD.addEventListener("pointerdown", e => { const li = e.target.closest("li"); if (!li) return; e.preventDefault(); ddPick(Number(li.dataset.i)); });
+  window.addEventListener("scroll", () => { if (ddFor) ddPlace(ddFor); }, { passive: true });
+  if (window.visualViewport) visualViewport.addEventListener("scroll", () => { if (ddFor) ddPlace(ddFor); });
+  const rowEl = inp => inp.closest(".row"), rowOf = inp => F.rows[Number(rowEl(inp).dataset.i)];
+  function posOf(inp) { if (!inp) return null; if (inp.id === "inShop") return { i: -1, c: "shop" }; const el = rowEl(inp); return el ? { i: Number(el.dataset.i), c: inp.className.split(" ")[0] } : null; }
+  const q = (i, c) => $("rows").querySelector(`.row[data-i="${i}"] .${c}`);
+  function focusEl(el) { if (!el) return; el.focus(); if (el.select && el.tagName === "INPUT") el.select(); setTimeout(() => showField(el), 60); }
+  function nextRow(i, c) {
+    if (i + 1 < F.rows.length) return focusEl(q(i + 1, c));
+    readRows(); const last = F.rows[i]; F.rows.push(Object.assign(blankRow(), { cat: last.cat, rate: last.rate })); drawForm(); focusEl(q(i + 1, c));
+  }
+  function setCat(i, name) {
+    const r = F.rows[i]; r.cat = name; r.catTouched = true; const ct = q(i, "ct"); if (ct) ct.value = name;
+    const rt = q(i, "rt"); if (rt && F.tax !== "incl") { const v = catTax(name) || F.tax; rt.value = v; r.rate = v; } calcTotal();
+  }
+  function applyHit(i, hit) {
+    readRows(); const r = F.rows[i]; r.item = hit.item; q(i, "it").value = hit.item;
+    if (!r.catTouched) setCat(i, hit.cat), r.catTouched = false;
+    if (!K.num(r.amount)) { r.amount = String(hit.unit); q(i, "am").value = fmtAmt(hit.unit); }
+    if (hit.uval && !r.uval && F.type !== "income") { Object.assign(r, { uval: hit.uval, utype: hit.utype || "g", more: true }); drawForm(); }
+    calcTotal();
+  }
+  function moveFrom(pos) {
+    if (!pos) return; const v = P.mode !== "h", inc = F.type === "income", i = pos.i;
+    if (pos.c === "shop") return focusEl(q(0, "ct"));
+    if (pos.c === "ct") return focusEl(q(i, "it"));
+    const empty = k => { const r = F.rows[k]; return r && !r.item && !K.num(r.amount); };
+    const done = () => { readRows(); while (F.rows.length > 1 && empty(F.rows.length - 1)) F.rows.pop(); drawForm(); if (document.activeElement) document.activeElement.blur(); kbState(); setTimeout(() => $("tot").closest(".foot").scrollIntoView({ block: "end", behavior: "smooth" }), 200); };
+    if (pos.c === "it" && empty(i) && i > 0) {
+      // 品名が空のままEnter：品名の入力はおしまい
+      if (v) { readRows(); while (F.rows.length > 1 && empty(F.rows.length - 1)) F.rows.pop(); drawForm(); const k = F.rows.findIndex(r => !K.num(r.amount)); return focusEl(q(k < 0 ? 0 : k, "am")); }
+      return done();
+    }
+    if (pos.c === "am" && v && (i + 1 >= F.rows.length || empty(i + 1))) return done();
+    if (pos.c === "it") { const it = q(i, "it"), hit = it && SG.items.find(x => x.type === F.type && x.item === it.value.trim()); if (hit && !K.num(F.rows[i].amount)) applyHit(i, hit); return v ? nextRow(i, "it") : focusEl(q(i, inc ? "am" : "qty")); }
+    if (pos.c === "qty") return focusEl(q(i, "am"));
+    if (pos.c === "am") return v ? nextRow(i, "am") : nextRow(i, "ct");
+    if (pos.c === "dc") return focusEl(q(i, "uv"));
+    if (pos.c === "uv") return nextRow(i, v ? "am" : "ct");
+  }
+  function suggestFor(inp, all) {
+    const t = all ? "" : normName(inp.value);
+    if (inp.id === "inShop") return ddShow(inp, SG.shops.filter(x => !t || normName(x).includes(t) && x !== inp.value).map(x => ({ label: x, pick: () => { inp.value = x; F.shop = x; } })));
+    const i = Number(rowEl(inp).dataset.i);
+    if (inp.classList.contains("ct")) { const all = cats(F.type).map(c => c.name), f = all.filter(n => !t || normName(n).includes(t)); return ddShow(inp, (f.length ? f : all).map(n => ({ label: n, sub: F.type !== "income" && F.tax !== "incl" && catTax(n) ? catTax(n) + "%" : "", pick: () => setCat(i, n) }))); }
+    if (inp.classList.contains("it")) { if (!t) return ddHide(); return ddShow(inp, SG.items.filter(x => x.type === F.type && normName(x.item).includes(t)).map(x => ({ label: x.item, sub: x.cat + "・" + yen(x.unit) + (x.uval ? "・" + x.uval + x.utype : ""), pick: () => applyHit(i, x) }))); }
+  }
+  const normName = K.normName;
+  const FIELDS = ".ct,.it,.qty,.am,.dc,.uv,#inShop";
+  $("v-input").addEventListener("focusin", e => { if (e.target.matches("#inShop,.ct")) suggestFor(e.target, true); });
+  $("v-input").addEventListener("focusout", e => {
+    const tg = e.target, wasIt = tg.classList && tg.classList.contains("it") && rowEl(tg) ? Number(rowEl(tg).dataset.i) : -1;
+    setTimeout(() => {
+      const a = document.activeElement; if (ddFor && a !== ddFor) ddHide();
+      if (wasIt < 0 || !F || !F.rows[wasIt]) return;
+      const it = q(wasIt, "it"); if (!it) return; const hit = SG.items.find(x => x.type === F.type && x.item === it.value.trim());
+      if (!hit || K.num(F.rows[wasIt].amount)) return;
+      const pos = a && a.closest && a.closest("#rows") ? posOf(a) : null; applyHit(wasIt, hit);
+      if (pos && !document.activeElement.closest("#rows")) { const el = q(pos.i, pos.c); if (el) el.focus(); }
+    }, 120);
+  });
+  // スマホのキーボードが開いている間は下のメニューを隠す
+  // アプリ内ブラウザ（noteアプリなど）で下のメニューが浮いてしまうのを防ぐ：見えている画面の下端にそろえる
+  (function pinBar() {
+    const bar = document.querySelector(".tabbar"), vv = window.visualViewport; if (!bar || !vv) return;
+    let raf = 0;
+    const place = () => { raf = 0; const h = bar.offsetHeight; if (!h) return; const top = Math.round(vv.offsetTop + vv.height - h); bar.style.top = top + "px"; bar.style.bottom = "auto"; };
+    const req = () => { if (!raf) raf = requestAnimationFrame(place); };
+    vv.addEventListener("resize", req); vv.addEventListener("scroll", req); window.addEventListener("scroll", req, { passive: true }); window.addEventListener("resize", req);
+    window.addEventListener("orientationchange", () => setTimeout(place, 300)); window.addEventListener("pageshow", req);
+    place(); setTimeout(place, 500);
+  })();
+  const touch = window.matchMedia && matchMedia("(pointer:coarse)").matches;
+  const typing = () => { const a = document.activeElement; return !!(a && a.closest && a.closest("#v-input") && a.matches("input[type=text],input:not([type]),textarea")); };
+  function kbState() { const vvOpen = window.visualViewport && window.innerHeight - visualViewport.height > 150; document.body.classList.toggle("kb", view === "input" && (vvOpen || (touch && typing()))); }
+  function showField(el) {
+    if (!el || !el.getBoundingClientRect) return;
+    const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0), h = vv ? vv.height : innerHeight, r = el.getBoundingClientRect();
+    const want = top + h * 0.22; if (r.top < top + 8 || r.bottom > top + h - 60 || Math.abs(r.top - want) > h * 0.35) window.scrollBy({ top: r.top - want, behavior: "smooth" });
+  }
+  if (window.visualViewport) visualViewport.addEventListener("resize", () => { kbState(); if (typing()) showField(document.activeElement); });
+  $("v-input").addEventListener("focusin", e => { kbState(); setTimeout(() => { kbState(); showField(e.target); }, 320); });
+  $("v-input").addEventListener("focusout", () => setTimeout(kbState, 150));
+  $("v-input").addEventListener("keydown", e => {
+    const tg = e.target, open = ddFor === tg && DD.classList.contains("on");
+    if (open && (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey))) { e.preventDefault(); return ddHi(ddAct + 1); }
+    if (open && (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey))) { e.preventDefault(); return ddHi(ddAct - 1); }
+    if (open && e.key === "Escape") return ddHide();
+    if (e.key !== "Enter" || e.isComposing || e.keyCode === 229 || !tg.matches(FIELDS)) return;
+    e.preventDefault();
+    if (open && ddAct >= 0) return ddPick(ddAct);
+    if (open && tg.classList.contains("ct") && ddItems.length === 1 && !cats(F.type).some(c => c.name === tg.value.trim())) return ddPick(0);
+    const pos = posOf(tg); ddHide(); readRows(); moveFrom(pos);
+  });
+  $("inShop").addEventListener("input", e => suggestFor(e.target));
+  $("rows").addEventListener("input", e => {
+    const tg = e.target;
+    if (tg.classList.contains("am") || tg.classList.contains("dc")) { const f = fmtAmt(tg.value); if (tg.value !== f) tg.value = f; }
+    if (tg.classList.contains("qty")) tg.value = tg.value.replace(/[^\d]/g, "");
+    if (tg.classList.contains("ct")) { rowOf(tg).catTouched = true; suggestFor(tg); }
+    if (tg.classList.contains("it")) suggestFor(tg);
+    calcTotal();
+  });
+  $("rows").addEventListener("change", e => { if (e.target.classList.contains("ct")) { const i = Number(rowEl(e.target).dataset.i), n = e.target.value.trim(); if (n) setCat(i, n); } calcTotal(); });
+  $("rows").addEventListener("click", e => { if (e.target.classList.contains("more")) { readRows(); const r = rowOf(e.target), i = Number(rowEl(e.target).dataset.i); r.more = !r.more; drawForm(); if (r.more) focusEl(q(i, "dc")); return; }
+    if (e.target.classList.contains("x")) { readRows(); F.rows.splice(Number(rowEl(e.target).dataset.i), 1); drawForm(); } });
+  $("addRow").onclick = () => { readRows(); const last = F.rows[F.rows.length - 1]; F.rows.push(Object.assign(blankRow(), last ? { cat: last.cat, rate: last.rate } : {})); drawForm(); focusEl(q(F.rows.length - 1, P.mode !== "h" ? "it" : "ct")); };
+  $("modeBtn").onclick = () => { P.mode = P.mode !== "h" ? "h" : "v"; psave(); drawForm(); toast(P.mode !== "h" ? "品名をまとめて入れてから、金額をまとめて入れる順にしました" : "1品ずつ「カテゴリ→品名→個数→金額」の順にしました"); };
+  $("inType").onclick = e => { const b = e.target.closest("button"); if (!b || b.dataset.t === F.type) return; readRows(); const keep = { date: F.date, shop: F.shop }; F.type = b.dataset.t; F.rows = [blankRow()]; Object.assign(F, keep); drawForm(); };
+  $("inTax").onclick = e => { const b = e.target.closest("button"); if (!b) return; readRows(); F.tax = b.dataset.x; F.rows.forEach(r => { r.rate = ""; }); P.tax = F.tax; psave(); drawForm(); };
+  window.addEventListener("beforeunload", e => { if (view !== "input" || !F) return; readRows(); if (F.rows.some(r => r.item || K.num(r.amount) > 0)) { e.preventDefault(); e.returnValue = ""; } });
+  ["inDate", "inShop", "inMemo"].forEach(id => $(id).addEventListener("change", readRows));
+  $("saveBtn").onclick = () => {
+    readRows();
+    if (!F.date) { toast("日付を入れてください"); return; }
+    const rows = F.rows.filter(r => K.num(r.amount) > 0);
+    if (!rows.length) { toast("金額を入れてください"); $("rows").querySelector(".am").focus(); return; }
+    const rc = K.receipt(rows, F.type === "income" ? "incl" : F.tax), t = now(), rid = F.rid || K.uid("r");
+    rows.forEach(r => { if (!r.cat) r.cat = F.type === "income" ? "その他の収入" : "その他"; if (!cats(F.type).some(c => c.name === r.cat)) { const l = cats(F.type); S.cats.push({ id: K.uid("c"), name: r.cat, type: F.type, color: K.PALETTE[l.length % K.PALETTE.length], order: (l.length ? l[l.length - 1].order : 0) + 1, updatedAt: t }); } });
+    const keep = {};
+    rows.forEach((r, i) => {
+      const o = { type: F.type, date: F.date, shop: F.shop, rid, item: r.item, cat: r.cat, qty: r.qty || 1, amount: rc.incl[i], memo: i === 0 ? F.memo : "", disc: Math.round(Math.abs(K.num(r.disc))) || 0, uval: K.num(r.uval) > 0 ? K.num(r.uval) : 0, utype: K.num(r.uval) > 0 ? r.utype : "", updatedAt: t };
+      const ex = r.id && S.tx.find(x => x.id === r.id);
+      if (ex) { Object.assign(ex, o); keep[ex.id] = 1; } else { const id = K.uid("t"); S.tx.push(Object.assign({ id, by: P.name || "", createdAt: t }, o)); keep[id] = 1; }
+    });
+    if (F.rid) S.tx.forEach(x => { if (x.rid === F.rid && !keep[x.id] && !x.del) Object.assign(x, { del: true, updatedAt: t }); });
+    if (F.type === "expense") { P.lastCat = rows[rows.length - 1].cat; psave(); }
+    const bought = rows.map(r => r.memoId).filter(Boolean);
+    S.memo.forEach(m => { if (bought.includes(m.id) && !m.del) Object.assign(m, { del: true, updatedAt: t }); });
+    const wasEdit = !!F.rid; ym = F.date.slice(0, 7);
+    F = null; changed();
+    toast(wasEdit ? "保存しました" : `${yen(rc.total)}を登録しました`);
+    if (wasEdit) go("home"); else { newForm(); window.scrollTo(0, 0); }
+  };
+  $("cancelEdit").onclick = () => { F = null; go("home"); };
+  $("delRc").onclick = () => { if (!confirm("このレシートの記録を削除しますか？")) return; const t = now(); S.tx.forEach(x => { if (x.rid === F.rid && !x.del) Object.assign(x, { del: true, updatedAt: t }); }); F = null; changed(); toast("削除しました"); go("home"); };
+
+  // ---- 一時保存（この端末だけ）----
+  const DRK = "sora.kakeibo.drafts";
+  const drafts = () => { try { return JSON.parse(localStorage.getItem(DRK) || "[]") || []; } catch (e) { return []; } };
+  const dput = l => { try { localStorage.setItem(DRK, JSON.stringify(l.slice(0, 5))); } catch (e) {} };
+  $("draftSave").onclick = () => {
+    readRows(); const rows = F.rows.filter(r => r.item || K.num(r.amount) > 0);
+    if (!rows.length && !F.shop) { toast("入力中の内容がありません"); return; }
+    const l = drafts(); if (l.length >= 5) { toast("一時保存は5件までです。復元か削除をしてください"); return; }
+    l.unshift({ at: now(), f: JSON.parse(JSON.stringify(Object.assign({}, F, { rows }))), total: calcTotal().total }); dput(l);
+    toast("一時保存しました"); const ty = F.type; F = null; newForm(ty); $("draftBox").innerHTML = "";
+  };
+  $("draftOpen").onclick = () => {
+    const l = drafts(), box = $("draftBox");
+    if (box.innerHTML) { box.innerHTML = ""; return; }
+    box.innerHTML = `<div class="drafts">${l.length ? l.map((d, i) => `<div class="li" data-d="${i}"><span>${esc(d.f.shop || (d.f.rows[0] || {}).item || "（お店なし）")}　<span class="note" style="margin:0">${d.f.date.slice(5).replace("-", "/")}・${yen(d.total)}・${d.f.rows.length}品</span></span><div class="ops"><button type="button" data-da="open">復元</button><button type="button" class="del" data-da="del">削除</button></div></div>`).join("") : `<p class="empty">一時保存したものはありません。</p>`}</div>`;
+  };
+  $("draftBox").addEventListener("click", e => {
+    const a = e.target.dataset.da; if (!a) return; const i = Number(e.target.closest(".li").dataset.d), l = drafts(), d = l[i];
+    if (a === "open") { readRows(); if (F.rows.some(r => r.item || K.num(r.amount) > 0) && !confirm("入力中の内容は消えます。復元しますか？")) return; F = Object.assign(d.f, { rid: null }); if (!F.rows.length) F.rows.push(blankRow()); }
+    l.splice(i, 1); dput(l); $("draftBox").innerHTML = ""; drawForm(); if (a === "open") toast("復元しました");
+  });
+
+  // ---- 買い物メモ（家族と同期）----
+  function renderMemo() {
+    const l = K.live(S.memo).sort((a, b) => (a.createdAt || a.updatedAt) - (b.createdAt || b.updatedAt));
+    $("mList").innerHTML = l.length ? l.map(m => `<div class="mi${m.done ? " done" : ""}" data-m="${esc(m.id)}"><input type="checkbox"${m.done ? " checked" : ""} aria-label="買った"><span class="tx">${esc(m.text)}</span><span class="by">${esc(m.by || "")}</span><button type="button" class="x" aria-label="削除">×</button></div>`).join("") : `<p class="empty">買うものはまだありません。</p>`;
+    const n = l.filter(m => m.done).length; $("mToInput").disabled = !n; $("mToInput").textContent = n ? `チェックした${n}品を入力へ送る` : "チェックしたものを入力へ送る"; $("mClear").disabled = !n;
+  }
+  const mAdd = () => { const tx = $("mText").value.trim(); if (!tx) return; tx.split(/[、,\n]/).map(x => x.trim()).filter(Boolean).forEach(x => S.memo.push({ id: K.uid("m"), text: x, done: false, by: P.name || "", createdAt: now(), updatedAt: now() })); $("mText").value = ""; changed(); $("mText").focus(); };
+  $("mAdd").onclick = mAdd;
+  $("mText").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); mAdd(); } });
+  $("mList").addEventListener("change", e => { const m = S.memo.find(x => x.id === e.target.closest(".mi").dataset.m); Object.assign(m, { done: e.target.checked, updatedAt: now() }); changed(); });
+  $("mList").addEventListener("click", e => { if (!e.target.classList.contains("x")) return; const m = S.memo.find(x => x.id === e.target.closest(".mi").dataset.m); Object.assign(m, { del: true, updatedAt: now() }); changed(); });
+  $("mClear").onclick = () => { const t = now(); S.memo.forEach(m => { if (m.done && !m.del) Object.assign(m, { del: true, updatedAt: t }); }); changed(); };
+  $("mToInput").onclick = () => {
+    const l = K.live(S.memo).filter(m => m.done); if (!l.length) return;
+    const sg = K.suggest(S).items;
+    F = null; newForm("expense");
+    F.rows = l.map(m => { const h = sg.find(x => x.type === "expense" && x.item === m.text), r = blankRow(); return Object.assign(r, { item: m.text, memoId: m.id }, h ? { cat: h.cat, catTouched: true } : {}, h && h.uval ? { uval: h.uval, utype: h.utype || "g" } : {}); });
+    go("input"); drawForm(); toast("金額を入れて登録すると、メモから消えます");
+  };
+
+  // ---- 振り返り ----
+  $("rpTab").onclick = e => { const b = e.target.closest("button"); if (!b) return; rpTab = b.dataset.r; $("rpTab").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderReport(); };
+  let priceQ = "", trendCat = "", shopRange = "3", sq = { q: "", type: "", cat: "", from: "", to: "" };
+  function bars(months, series, colors, onTap) {
+    const W = 340, H = 170, pl = 4, pb = 18, n = months.length, gw = (W - pl) / n, max = Math.max(1, ...series.flat());
+    const bw = Math.max(3, (gw - 6) / series.length);
+    let g = "";
+    months.forEach((m, i) => {
+      series.forEach((s, k) => { const h = Math.round(s[i] / max * (H - pb - 14)); g += `<rect x="${(pl + i * gw + 3 + k * bw).toFixed(1)}" y="${H - pb - h}" width="${(bw - 1).toFixed(1)}" height="${h}" rx="1.5" fill="${colors[k]}" data-m="${m}" style="cursor:pointer"><title>${mLabel(m)} ${yen(s[i])}</title></rect>`; });
+      g += `<text x="${(pl + i * gw + gw / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle">${Number(m.slice(5))}月</text>`;
+    });
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="月ごとの金額のグラフ">${g}<line x1="0" x2="${W}" y1="${H - pb}" y2="${H - pb}" stroke="var(--line)"/></svg>`;
+  }
+  function renderReport() {
+    const el = $("rp"), endYm = today().slice(0, 7);
+    if (rpTab === "trend") {
+      const tr = K.trend(S, endYm, 12), ser = trendCat ? [tr.cats[trendCat] || tr.months.map(() => 0)] : [tr.expense, tr.income];
+      const avg = a => Math.round(a.reduce((x, y) => x + y, 0) / Math.max(1, a.filter(Boolean).length));
+      el.innerHTML = `<section class="card"><h2>12か月の推移</h2><select id="tcat" class="in" style="margin:2px 0 4px"><option value="">支出と収入</option>${cats("expense").map(c => `<option${c.name === trendCat ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>
+        ${bars(tr.months, ser, trendCat ? [color("expense", trendCat)] : ["var(--primary)", "var(--pos)"])}
+        <div class="legend">${trendCat ? `<span><i style="background:${color("expense", trendCat)}"></i>${esc(trendCat)}</span>` : `<span><i style="background:var(--primary)"></i>支出</span><span><i style="background:var(--pos)"></i>収入</span>`}</div>
+        <p class="note">棒を押すと、その月のホームを開きます。記録のある月の平均：${trendCat ? esc(trendCat) + " " + yen(avg(ser[0])) : "支出 " + yen(avg(tr.expense)) + "・収入 " + yen(avg(tr.income))}</p>
+        <table class="t"><tr><th>月</th><th>支出</th><th>収入</th><th>収入−支出</th></tr>${tr.months.slice().reverse().map((m, j) => { const i = 11 - j; if (!tr.expense[i] && !tr.income[i] && j) return ""; return `<tr><td>${mLabel(m)}</td><td>${yen(tr.expense[i])}</td><td>${yen(tr.income[i])}</td><td class="${tr.income[i] - tr.expense[i] < 0 ? "up" : ""}">${(tr.income[i] - tr.expense[i] < 0 ? "−" : "") + yen(Math.abs(tr.income[i] - tr.expense[i]))}</td></tr>`; }).join("")}</table></section>`;
+      $("tcat").onchange = e => { trendCat = e.target.value; renderReport(); };
+      el.querySelector("svg").onclick = e => { const m = e.target.dataset && e.target.dataset.m; if (m) { ym = m; go("home"); } };
+    } else if (rpTab === "yoy") {
+      const y = Number(endYm.slice(0, 4)), r = K.yoy(S, y), cm = Number(endYm.slice(5));
+      const sum = a => a.slice(0, cm).reduce((x, v) => x + v, 0), d = sum(r.expense) - sum(r.lastExpense);
+      el.innerHTML = `<section class="card"><h2>${y}年と${y - 1}年の支出</h2>${bars(Array.from({ length: 12 }, (_, i) => y + "-" + String(i + 1).padStart(2, "0")), [r.lastExpense, r.expense], ["#B9C7DD", "var(--primary)"])}
+        <div class="legend"><span><i style="background:#B9C7DD"></i>${y - 1}年</span><span><i style="background:var(--primary)"></i>${y}年</span></div>
+        <p class="note">1〜${cm}月の合計：${y}年 ${yen(sum(r.expense))}、${y - 1}年 ${yen(sum(r.lastExpense))}${sum(r.lastExpense) ? `（${d > 0 ? yen(d) + "増えました" : yen(-d) + "減りました"}）` : ""}</p>
+        <table class="t"><tr><th>月</th><th>${y - 1}年</th><th>${y}年</th><th>差</th></tr>${r.expense.map((v, i) => { const df = v - r.lastExpense[i]; return `<tr><td>${i + 1}月</td><td>${yen(r.lastExpense[i])}</td><td>${yen(v)}</td><td class="${df > 0 ? "up" : df < 0 ? "down" : ""}">${df > 0 ? "+" : df < 0 ? "−" : ""}${yen(Math.abs(df))}</td></tr>`; }).join("")}</table></section>`;
+    } else if (rpTab === "shop") {
+      const to = today(), from = shopRange === "y" ? endYm.slice(0, 4) + "-01-01" : K.addYm(endYm, -(Number(shopRange) - 1)) + "-01";
+      const list = K.shops(S, from, to), max = Math.max(1, ...list.map(x => x.total));
+      el.innerHTML = `<section class="card"><h2>よく使うお店</h2><div class="seg full" id="srng">${[["1", "今月"], ["3", "3か月"], ["12", "1年"], ["y", "今年"]].map(([k, l]) => `<button type="button" data-k="${k}"${k === shopRange ? ' class="on"' : ""}>${l}</button>`).join("")}</div>
+        ${list.length ? `<table class="t"><tr><th>お店</th><th>回数</th><th>1回あたり</th><th>合計</th></tr>${list.slice(0, 30).map(x => `<tr><td>${esc(x.shop)}<div style="height:4px;background:var(--primary-soft);border-radius:2px;margin-top:3px"><div style="height:4px;width:${Math.round(x.total / max * 100)}%;background:var(--primary);border-radius:2px"></div></div></td><td>${x.count}回</td><td>${yen(x.avg)}</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table>` : `<p class="empty">この期間に、お店の名前が入った支出はありません。</p>`}</section>`;
+      $("srng").onclick = e => { const b = e.target.closest("button"); if (b) { shopRange = b.dataset.k; renderReport(); } };
+    } else if (rpTab === "price") {
+      const its = K.priceItems(S);
+      el.innerHTML = `<section class="card"><h2>底値帳</h2><input type="text" id="pq" class="in" placeholder="品名（例：牛乳）" value="${esc(priceQ)}" list="dlPrice" enterkeyhint="search" autocomplete="off"><datalist id="dlPrice">${its.map(x => `<option value="${esc(x.item)}">`).join("")}</datalist><div id="pres"></div></section>`;
+      const run = () => {
+        priceQ = $("pq").value.trim(); const box = $("pres");
+        if (!priceQ) { box.innerHTML = its.length ? `<p class="note">よく買う品物</p><div class="chips">${its.slice(0, 30).map(x => `<button type="button" data-pi="${esc(x.item)}">${esc(x.item)}</button>`).join("")}</div>` : `<p class="empty">入力のときに「値引き・容量」から容量（g・mL・個）を入れると、100gあたりなどの値段で比べられます。同じ品物を2回以上買うと、ここに出てきます。</p>`; return; }
+        const b = K.priceBook(S, priceQ), fmt = v => v == null ? "-" : (Math.round(v * 10) / 10).toLocaleString("ja-JP") + "円";
+        if (!b.rows.length) { box.innerHTML = `<p class="empty">「${esc(priceQ)}」を買った記録はありません。</p>`; return; }
+        box.innerHTML = (b.best ? `<div class="best"><span class="note" style="margin:0">いちばん安かったのは（${b.label}）</span><br><b>${fmt(b.val(b.best))}</b>　${esc(b.best.shop || "お店なし")}・${b.best.date.slice(0, 7).replace("-", "年")}月${Number(b.best.date.slice(8))}日</div>` : "")
+          + (b.shops.length > 1 ? `<p class="note">お店ごとのいちばん安い値段（${b.label}）</p><table class="t">${b.shops.map((x, i) => `<tr class="${i ? "" : "cheap"}"><td>${esc(x.shop)}</td><td>${fmt(x.v)}</td></tr>`).join("")}</table>` : "")
+          + `<p class="note">買った記録（安い順・税込・値引き後）</p><table class="t"><tr><th>日付・お店</th><th>値段</th><th>${b.label}</th></tr>${b.rows.slice(0, 100).map(r => `<tr><td>${r.date.slice(5).replace("-", "/")} ${esc(r.shop)}<br><span class="note" style="margin:0">${esc(r.item)}${r.uval ? " " + r.uval + r.utype : ""}${r.qty > 1 ? " ×" + r.qty : ""}</span></td><td>${yen(r.amount)}</td><td>${fmt(b.val(r))}</td></tr>`).join("")}</table>`
+          + (b.rows.some(r => b.val(r) == null) ? `<p class="note">容量の単位がちがう記録・容量のない記録は「-」で、比べる対象から外しています。</p>` : "");
+      };
+      $("pq").addEventListener("input", run); $("pres").addEventListener("click", e => { const v = e.target.dataset.pi; if (v) { $("pq").value = v; run(); } }); run();
+    } else {
+      el.innerHTML = `<section class="card"><h2>記録を探す</h2><input type="text" id="sq" class="in" placeholder="品名・お店・メモ・金額" value="${esc(sq.q)}" enterkeyhint="search">
+        <div class="f2" style="margin-top:8px"><select id="sty" class="in"><option value="">支出と収入</option><option value="expense"${sq.type === "expense" ? " selected" : ""}>支出</option><option value="income"${sq.type === "income" ? " selected" : ""}>収入</option></select><select id="scat" class="in"><option value="">すべてのカテゴリ</option>${[...cats("expense"), ...cats("income")].map(c => `<option${c.name === sq.cat ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>
+        <div class="f2" style="margin-top:8px"><input type="date" id="sfrom" class="in" value="${sq.from}" aria-label="いつから"><input type="date" id="sto" class="in" value="${sq.to}" aria-label="いつまで"></div><div id="sres"></div></section>`;
+      const run = () => {
+        sq = { q: $("sq").value, type: $("sty").value, cat: $("scat").value, from: $("sfrom").value, to: $("sto").value };
+        if (!sq.q && !sq.cat && !sq.from && !sq.to && !sq.type) { $("sres").innerHTML = `<p class="empty">言葉やカテゴリ、期間を入れると探せます。</p>`; return; }
+        const res = K.search(S, sq.q, sq), tot = res.reduce((a, t) => a + (t.type === "income" ? 0 : t.amount), 0), inc = res.reduce((a, t) => a + (t.type === "income" ? t.amount : 0), 0);
+        $("sres").innerHTML = `<p class="note">${res.length}件${tot ? "・支出 " + yen(tot) : ""}${inc ? "・収入 " + yen(inc) : ""}</p>` + res.slice(0, 200).map(t => `<button type="button" class="rc" data-rid="${esc(t.rid)}"><div class="top"><span class="nm">${esc(t.item || t.shop || t.cat)}</span><span class="amt${t.type === "income" ? " inc" : ""}">${t.type === "income" ? "+" : ""}${yen(t.amount)}</span></div><div class="ds">${t.date.replace(/-/g, "/")}　<span class="chip">${esc(t.cat)}</span>${esc(t.item ? t.shop : "")}</div></button>`).join("") + (res.length > 200 ? `<p class="note">先頭の200件を表示しています。</p>` : "");
+      };
+      ["sq", "sty", "scat", "sfrom", "sto"].forEach(id => $(id).addEventListener(id === "sq" ? "input" : "change", run)); run();
+    }
+  }
+
+  // ---- 設定 ----
+  $("byName").value = P.name || "";
+  $("byName").onchange = e => { P.name = e.target.value.trim(); psave(); toast("名前を保存しました"); };
+  function renderSet() {
+    const bud = {}; K.live(S.budgets).forEach(b => { bud[b.cat] = b.amount; });
+    $("budgets").innerHTML = cats("expense").map(c => `<div class="bud"><span class="dot" style="background:${c.color}"></span><span>${esc(c.name)}</span><input type="number" inputmode="numeric" min="0" step="1000" data-nomoney data-bud="${esc(c.name)}" value="${bud[c.name] || ""}" placeholder="0"></div>`).join("");
+    const bt = Object.values(bud).reduce((a, b) => a + (b || 0), 0); $("budTotal").textContent = bt ? "予算の合計：" + yen(bt) + "／月" : "";
+    const g = K.live(S.goals);
+    $("goals").innerHTML = g.length ? g.map(x => { const r = K.goal(x, today().slice(0, 7)); return `<div class="goal" data-g="${esc(x.id)}"><div class="top"><span>${esc(x.name)}</span><span>${r.pct}%</span></div><div class="tr"><i style="width:${r.pct}%"></i></div>
+      <div class="ds">${yen(r.saved)} ／ ${yen(r.target)}${r.left ? `　あと${yen(r.left)}` : "　達成！"}${r.per ? `<br>${x.deadline.replace("-", "年")}月まであと${r.months}か月。毎月 <b>${yen(r.per)}</b> 貯めれば届きます` : ""}</div>
+      <div class="act"><input type="number" inputmode="numeric" min="0" step="1000" data-nomoney placeholder="貯めた金額"><button type="button" class="ghostb" data-ga="add">足す</button><button type="button" class="ghostb neg" data-ga="del">削除</button></div></div>`; }).join("") : `<p class="empty">旅行や車の買い替えなど、目標を決めて貯めた金額を記録できます。</p>`;
+    const cl = cats(cType), use = {}; K.live(S.tx).forEach(t => { if (t.type === cType) use[t.cat] = (use[t.cat] || 0) + 1; });
+    $("cType").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.t === cType));
+    $("catList").innerHTML = cl.map((c, i) => `<div class="li" data-c="${esc(c.id)}"><input type="color" value="${c.color}" aria-label="色"><input type="text" class="in cn" value="${esc(c.name)}" aria-label="名前"><div class="ops">${cType === "expense" ? `<select class="ctax" aria-label="税抜で入れるときの税率" style="width:64px;font-size:12.5px;padding:5px 2px">${[["", "税率"], ["8", "8%"], ["10", "10%"], ["0", "非課税"]].map(([v, l]) => `<option value="${v}"${String(c.tax || "") === v ? " selected" : ""}>${l}</option>`).join("")}</select>` : ""}<button type="button" data-ca="up"${i ? "" : " disabled"} aria-label="上へ">↑</button><button type="button" data-ca="dn"${i < cl.length - 1 ? "" : " disabled"} aria-label="下へ">↓</button><button type="button" class="del" data-ca="del">削除</button></div></div>`).join("");
+    $("catList").dataset.use = JSON.stringify(use);
+    $("rCat").innerHTML = catOpts("expense") + `<optgroup label="収入">${catOpts("income")}</optgroup>`;
+    const rl = K.live(S.rules);
+    $("rules").innerHTML = rl.length ? rl.map(r => `<div class="li" data-r="${esc(r.id)}"><span></span><span>「${esc(r.kw)}」→ ${esc(r.cat)}</span><div class="ops"><button type="button" class="del" data-ra="del">削除</button></div></div>`).join("") : `<p class="empty">まだルールはありません。</p>`;
+  }
+  $("budgets").addEventListener("change", e => {
+    const c = e.target.dataset.bud; if (!c) return; const v = Math.max(0, Math.round(K.num(e.target.value))), id = "b_" + c;
+    const b = S.budgets.find(x => x.id === id); if (b) Object.assign(b, { amount: v, del: false, updatedAt: now() }); else S.budgets.push({ id, cat: c, amount: v, updatedAt: now() });
+    changed(); toast("予算を保存しました");
+  });
+  $("gAdd").onclick = () => {
+    const name = $("gName").value.trim(), target = Math.round(K.num($("gTarget").value));
+    if (!name || !target) { toast("名前と目標金額を入れてください"); return; }
+    S.goals.push({ id: K.uid("g"), name, target, saved: 0, deadline: $("gDead").value || "", updatedAt: now() });
+    $("gName").value = $("gTarget").value = $("gDead").value = ""; changed(); toast("目標を追加しました");
+  };
+  $("goals").addEventListener("click", e => {
+    const a = e.target.dataset.ga; if (!a) return; const box = e.target.closest(".goal"), g = S.goals.find(x => x.id === box.dataset.g);
+    if (a === "del") { if (confirm(`「${g.name}」を削除しますか？`)) { Object.assign(g, { del: true, updatedAt: now() }); changed(); } return; }
+    const v = Math.round(K.num(box.querySelector("input").value)); if (!v) { toast("金額を入れてください"); return; }
+    Object.assign(g, { saved: Math.max(0, K.num(g.saved) + v), updatedAt: now() }); changed(); toast(yen(v) + "を足しました");
+  });
+  $("cType").onclick = e => { const b = e.target.closest("button"); if (b) { cType = b.dataset.t; renderSet(); } };
+  $("catList").addEventListener("change", e => {
+    const li = e.target.closest(".li"), c = S.cats.find(x => x.id === li.dataset.c), t = now(); if (!c) return;
+    if (e.target.type === "color") { Object.assign(c, { color: e.target.value, updatedAt: t }); }
+    else if (e.target.classList.contains("ctax")) { Object.assign(c, { tax: e.target.value, updatedAt: t }); toast(e.target.value ? `「${c.name}」は税抜入力のとき${e.target.value === "0" ? "非課税" : e.target.value + "%"}になります` : "税率は入力画面の設定に合わせます"); }
+    else { const nn = e.target.value.trim(); if (!nn || nn === c.name) { e.target.value = c.name; return; } if (cats(c.type).some(x => x.name === nn)) { toast("同じ名前のカテゴリがあります"); e.target.value = c.name; return; }
+      S.tx.forEach(x => { if (!x.del && x.type === c.type && x.cat === c.name) Object.assign(x, { cat: nn, updatedAt: t }); });
+      S.rules.forEach(x => { if (!x.del && x.cat === c.name) Object.assign(x, { cat: nn, updatedAt: t }); });
+      if (c.type === "expense") { const b = S.budgets.find(x => x.id === "b_" + c.name && !x.del); if (b) { Object.assign(b, { del: true, updatedAt: t }); S.budgets.push({ id: "b_" + nn, cat: nn, amount: b.amount, updatedAt: t }); } }
+      Object.assign(c, { name: nn, updatedAt: t }); toast("名前を変えました（過去の記録も変わります）"); }
+    changed();
+  });
+  $("catList").addEventListener("click", e => {
+    const a = e.target.dataset.ca; if (!a) return; const li = e.target.closest(".li"), list = cats(cType), i = list.findIndex(x => x.id === li.dataset.c), c = list[i], t = now();
+    if (a === "del") { const n = JSON.parse($("catList").dataset.use || "{}")[c.name] || 0; if (!confirm(`「${c.name}」を削除しますか？${n ? `\nこのカテゴリの記録${n}件は消えずに残ります（カテゴリ名もそのまま）。` : ""}`)) return; Object.assign(c, { del: true, updatedAt: t }); }
+    else { const j = a === "up" ? i - 1 : i + 1; if (j < 0 || j >= list.length) return; list.splice(j, 0, list.splice(i, 1)[0]); list.forEach((x, k) => { if (x.order !== k + (cType === "income" ? 100 : 0)) Object.assign(x, { order: k + (cType === "income" ? 100 : 0), updatedAt: t }); }); }
+    changed();
+  });
+  $("cAdd").onclick = () => {
+    const nn = $("cName").value.trim(); if (!nn) return; if (cats(cType).some(x => x.name === nn)) { toast("同じ名前のカテゴリがあります"); return; }
+    const l = cats(cType); S.cats.push({ id: K.uid("c"), name: nn, type: cType, color: K.PALETTE[l.length % K.PALETTE.length], order: (l.length ? l[l.length - 1].order : 0) + 1, updatedAt: now() });
+    $("cName").value = ""; changed(); toast("カテゴリを追加しました");
+  };
+  $("rAdd").onclick = () => { const kw = $("rKw").value.trim(); if (!kw) return; S.rules.push({ id: K.uid("u"), kw, cat: $("rCat").value, updatedAt: now() }); $("rKw").value = ""; changed(); toast("ルールを追加しました"); };
+  $("rules").addEventListener("click", e => { if (e.target.dataset.ra !== "del") return; const r = S.rules.find(x => x.id === e.target.closest(".li").dataset.r); Object.assign(r, { del: true, updatedAt: now() }); changed(); });
+
+  // CSV取り込み
+  let IMP = null;
+  function decode(buf) { const u = new TextDecoder("utf-8").decode(buf); if (!u.includes("�")) return u; try { return new TextDecoder("shift_jis").decode(buf); } catch (e) { return u; } }
+  $("csvFile").onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => preview(decode(rd.result)); rd.readAsArrayBuffer(f); e.target.value = ""; };
+  $("csvRead").onclick = () => preview($("csvText").value);
+  function preview(text) {
+    const r = K.importCSV(S, text);
+    if (!r.ok) { $("csvPrev").innerHTML = `<div class="alert ng">${esc(r.msg)}「日付」「金額」の列があるCSVか確認してください。</div>`; return; }
+    IMP = r.items.map(x => Object.assign({ on: !x.dup, cat0: x.cat }, x));
+    drawPrev();
+  }
+  function drawPrev() {
+    const n = IMP.filter(x => x.on).length, dups = IMP.filter(x => x.dup).length;
+    $("csvPrev").innerHTML = `<p class="note">${IMP.length}件見つかりました${dups ? `（${dups}件は取り込み済みなので外しています）` : ""}。カテゴリを確認してから取り込んでください。</p>
+      <div class="prev"><table class="t"><tr><th></th><th>日付</th><th>内容</th><th>金額</th><th>カテゴリ</th></tr>${IMP.map((x, i) => `<tr class="${x.dup ? "dup" : ""}" data-i="${i}"><td><input type="checkbox"${x.on ? " checked" : ""} aria-label="取り込む"></td><td>${x.date.slice(5).replace("-", "/")}</td><td style="text-align:left;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.item)}</td><td class="${x.type === "income" ? "down" : ""}">${x.type === "income" ? "+" : ""}${x.amount.toLocaleString("ja-JP")}</td><td><select>${catOpts(x.type, x.cat)}</select></td></tr>`).join("")}</table></div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:8px"><input type="checkbox" id="mkRule" checked>直したカテゴリを、次から自動で使う</label>
+      <button type="button" class="primary wide" id="impGo"${n ? "" : " disabled"}>${n}件を取り込む</button>`;
+    $("impGo").onclick = doImport;
+  }
+  $("csvPrev").addEventListener("change", e => { const tr = e.target.closest("tr[data-i]"); if (!tr) return; const x = IMP[Number(tr.dataset.i)]; if (e.target.type === "checkbox") x.on = e.target.checked; else x.cat = e.target.value; const n = IMP.filter(y => y.on).length; $("impGo").textContent = n + "件を取り込む"; $("impGo").disabled = !n; });
+  function doImport() {
+    const t = now(), rule = $("mkRule").checked; let n = 0;
+    IMP.filter(x => x.on).forEach(x => { const id = K.uid("t"); S.tx.push({ id, rid: id, type: x.type, date: x.date, amount: x.amount, cat: x.cat, item: x.item, shop: "", qty: 1, memo: "", by: P.name || "", src: "csv", createdAt: t, updatedAt: t }); n++;
+      if (rule && x.cat !== x.cat0 && x.item && !K.live(S.rules).some(r => r.kw === x.item)) S.rules.push({ id: K.uid("u"), kw: x.item, cat: x.cat, updatedAt: t }); });
+    IMP = null; $("csvPrev").innerHTML = ""; $("csvText").value = ""; changed(); toast(n + "件を取り込みました");
+  }
+
+  // バックアップ
+  $("expBtn").onclick = () => {
+    const txt = K.exportData(S);
+    $("ioBox").innerHTML = `<p class="note">下の文字をすべてコピーして、新しいスマホの「書き出したデータを読み込む」に貼り付けてください。</p><textarea class="io" readonly>${esc(txt)}</textarea><button type="button" class="ghostb wide" id="cpBtn">コピーする</button>`;
+    $("cpBtn").onclick = () => { (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast("コピーしました"), () => { $("ioBox").querySelector("textarea").select(); toast("選択しました。コピーしてください"); }); };
+  };
+  $("impBtn").onclick = () => {
+    $("ioBox").innerHTML = `<textarea class="io" placeholder="書き出した文字を貼り付け"></textarea><button type="button" class="primary wide" id="impDo">読み込む</button>`;
+    $("impDo").onclick = () => { try { const inc = K.importData($("ioBox").querySelector("textarea").value); const r = K.syncMerge(S, inc); S = r.state; changed(); $("ioBox").innerHTML = ""; toast("読み込みました"); } catch (e) { toast(e.message || "読み込めませんでした"); } };
+  };
+  $("csvOut").onclick = () => {
+    const blob = new Blob([K.toCSV(S)], { type: "text/csv" }), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "kakeibo-" + today() + ".csv"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  };
+  $("wipe").onclick = () => { if (!confirm("この端末の家計簿をすべて消します。よろしいですか？")) return; S = K.norm(null); D = {}; dsave(); F = null; changed(); toast("消しました"); go("home"); };
+
+  let D = {}; const dsave = () => {}; function drawDrive() {} function autoSync() {}
+  function renderAll() {
+    if (view === "home") renderHome();
+    else if (view === "report") renderReport();
+    else if (view === "memo") renderMemo();
+    else if (view === "set") { renderSet(); drawDrive(); }
+  }
+  newForm(); F = null;
+  drawDrive(); renderAll();
+  if (DEMO) {
+    document.title = "わが家の家計簿 お試し版（無料）｜そらのツール箱";
+    const ban = document.createElement("div"); ban.className = "demo";
+    ban.innerHTML = `<b>お試し版</b>：見本のデータで、入力も集計も実際に試せます。入力した内容は、このページを閉じると消えます。<a href="${BUY}" target="_blank" rel="noopener">製品版（1,000円・家族で使えます）</a>`;
+    document.querySelector(".wrap header").after(ban);
+    const off = (id, what) => { const sec = $(id) && $(id).closest("section.card"); if (!sec) return; [...sec.children].forEach(c => { if (c.tagName !== "H2") c.remove(); }); sec.insertAdjacentHTML("beforeend", `<p class="note" style="margin:0">${what}は製品版で使えます。</p><a class="ghostb wide" style="display:block;text-align:center;text-decoration:none" href="${BUY}" target="_blank" rel="noopener">製品版について見る</a>`); };
+    off("drive", "Googleドライブで家族と同期する機能"); off("expBtn", "書き出し・読み込み");
+    const cs = $("csvFile").closest("section.card"); [$("csvFile"), $("csvText").closest("details"), $("csvPrev"), cs.querySelector("p.note")].forEach(x => x && x.remove());
+    cs.querySelector("h2").insertAdjacentHTML("afterend", `<p class="note" style="margin:0 0 6px">銀行・カードの明細（CSV）の取り込みは製品版で使えます。下の「自動で分けるルール」は試せます。</p>`);
+  }
+})();
+</script>
+</body>
+</html>
