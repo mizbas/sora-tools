@@ -132,6 +132,8 @@ textarea.io{width:100%;min-height:90px;font:12px/1.5 ui-monospace,monospace;bord
 .fxf{border:1px solid var(--line);border-radius:var(--r-md);padding:12px;margin:10px 0;background:var(--fill)}
 .fxf .in,.fxf select{background:#fff}
 .chip.auto{background:var(--primary-soft);color:var(--primary)}
+.chip.cc{color:var(--ink);display:inline-flex;align-items:center;gap:4px}
+.chip.cc i{width:7px;height:7px;border-radius:2px;display:inline-block;flex:none}
 .backb{font:inherit;font-size:15px;font-weight:700;color:var(--primary);background:none;border:0;padding:12px 0 0;cursor:pointer}
 .backb+h1{margin-top:4px}
 .cdt{display:flex;align-items:center;gap:10px}.cdt .dot{width:16px;height:16px;border-radius:4px;display:inline-block}
@@ -676,6 +678,9 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 2200); }
   const cats = type => K.live(S.cats).filter(c => c.type === type).sort((a, b) => a.order - b.order);
   const color = (type, name) => (K.live(S.cats).find(c => c.type === type && c.name === name) || {}).color || "#7A8B99";
+  // カテゴリの色つきチップ（ホームの「カテゴリ別の支出」と同じ色）
+  const tint = (hex, a) => { const h = String(hex).replace("#", ""); if (h.length !== 6) return "var(--fill)"; const n = parseInt(h, 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+  const catChip = (type, cat) => { const c = color(type, cat); return `<span class="chip cc" style="background:${tint(c, .13)}"><i style="background:${c}"></i>${esc(cat)}</span>`; };
   const catOpts = (type, sel) => { const l = cats(type).map(c => c.name); if (sel && !l.includes(sel)) l.push(sel); return l.map(n => `<option${n === sel ? " selected" : ""}>${esc(n)}</option>`).join(""); };
   const mLabel = m => { const [y, mo] = m.split("-"); return y + "年" + Number(mo) + "月"; };
   const md = d => Number(d.slice(5, 7)) + "/" + Number(d.slice(8, 10)) + "（" + "日月火水木金土"[new Date(d + "T00:00").getDay()] + "）";
@@ -737,8 +742,9 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   function rcHtml(r) {
     const items = r.rows.map(t => t.item).filter(Boolean), cs = [...new Set(r.rows.map(t => t.cat))];
     const title = r.shop || items[0] || cs[0], desc = (r.shop ? items : items.slice(1)).join("、");
-    return `<button type="button" class="rc" data-rid="${esc(r.rid)}"><div class="top"><span class="nm">${esc(title)}</span><span class="amt${r.type === "income" ? " inc" : ""}">${r.type === "income" ? "+" : ""}${yen(r.total)}</span></div>
-      <div class="ds">${r.rows.some(t => t.auto) ? `<span class="chip auto">自動</span>` : ""}${cs.map(c => `<span class="chip">${esc(c)}</span>`).join("")}${esc(desc)}${r.by && r.by !== "自動" ? `<span style="float:right">${esc(r.by)}</span>` : ""}</div></button>`;
+    const main = r.rows.slice().sort((a, b) => b.amount - a.amount)[0], acc = color(r.type, main.cat);
+    return `<button type="button" class="rc" data-rid="${esc(r.rid)}" style="border-left:4px solid ${acc}"><div class="top"><span class="nm">${esc(title)}</span><span class="amt${r.type === "income" ? " inc" : ""}">${r.type === "income" ? "+" : ""}${yen(r.total)}</span></div>
+      <div class="ds">${r.rows.some(t => t.auto) ? `<span class="chip auto">自動</span>` : ""}${cs.map(c => catChip(r.type, c)).join("")}${esc(desc)}${r.by && r.by !== "自動" ? `<span style="float:right">${esc(r.by)}</span>` : ""}</div></button>`;
   }
   document.addEventListener("click", e => { const b = e.target.closest(".rc"); if (b) return editReceipt(b.dataset.rid); const c = e.target.closest(".cbar[data-cat]"); if (c) openCat(c.dataset.cat); });
   $("cats").addEventListener("keydown", e => { const c = e.target.closest(".cbar[data-cat]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openCat(c.dataset.cat); } });
@@ -760,7 +766,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       ${d.count ? `<section class="card"><h2>何に使った？</h2><table class="t"><tr><th>品目</th><th>回数</th><th>合計</th></tr>${items.map(x => `<tr><td>${esc(x.item)}</td><td>${x.n}回</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table>${d.items.length > 8 ? `<button type="button" class="ghostb wide" id="cdMore">${showAllItems ? "上位8件だけ表示" : `すべて表示（${d.items.length}品目）`}</button>` : ""}</section>
       <section class="card"><h2>どこで使った？</h2><table class="t"><tr><th>お店</th><th>回数</th><th>合計</th></tr>${d.shops.map(x => `<tr><td>${esc(x.shop)}</td><td>${x.n}回</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table></section>` : ""}
       <section class="card"><h2>6か月の推移</h2>${bars(tr.months, [ser], [col])}<p class="note">棒を押すと、その月の${esc(detailCat)}を表示します。</p></section>
-      <section class="card"><h2>記録（${d.count}件）</h2>${d.count ? d.rows.map(t => `<button type="button" class="rc" data-rid="${esc(t.rid)}"><div class="top"><span class="nm">${esc(t.item || t.shop || t.cat)}${t.qty > 1 ? ` ×${t.qty}` : ""}</span><span class="amt">${yen(t.amount)}</span></div><div class="ds">${md(t.date)}　${esc(t.shop || "")}${t.by ? `<span style="float:right">${esc(t.by)}</span>` : ""}</div></button>`).join("") : `<p class="empty">この月の${esc(detailCat)}の記録はありません。</p>`}</section>`;
+      <section class="card"><h2>記録（${d.count}件）</h2>${d.count ? d.rows.map(t => `<button type="button" class="rc" data-rid="${esc(t.rid)}" style="border-left:4px solid ${col}"><div class="top"><span class="nm">${esc(t.item || t.shop || t.cat)}${t.qty > 1 ? ` ×${t.qty}` : ""}</span><span class="amt">${yen(t.amount)}</span></div><div class="ds">${md(t.date)}　${esc(t.shop || "")}${t.by ? `<span style="float:right">${esc(t.by)}</span>` : ""}</div></button>`).join("") : `<p class="empty">この月の${esc(detailCat)}の記録はありません。</p>`}</section>`;
     const mb = $("cdMore"); if (mb) mb.onclick = () => { showAllItems = !showAllItems; renderCat(); };
     $("cd").querySelector("svg").onclick = e => { const m = e.target.dataset && e.target.dataset.m; if (m) { ym = m; try { history.replaceState(navState(), ""); } catch (er) {} renderCat(); } };
   }
@@ -1082,7 +1088,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
         sq = { q: $("sq").value, type: $("sty").value, cat: $("scat").value, from: $("sfrom").value, to: $("sto").value };
         if (!sq.q && !sq.cat && !sq.from && !sq.to && !sq.type) { $("sres").innerHTML = `<p class="empty">言葉やカテゴリ、期間を入れると探せます。</p>`; return; }
         const res = K.search(S, sq.q, sq), tot = res.reduce((a, t) => a + (t.type === "income" ? 0 : t.amount), 0), inc = res.reduce((a, t) => a + (t.type === "income" ? t.amount : 0), 0);
-        $("sres").innerHTML = `<p class="note">${res.length}件${tot ? "・支出 " + yen(tot) : ""}${inc ? "・収入 " + yen(inc) : ""}</p>` + res.slice(0, 200).map(t => `<button type="button" class="rc" data-rid="${esc(t.rid)}"><div class="top"><span class="nm">${esc(t.item || t.shop || t.cat)}</span><span class="amt${t.type === "income" ? " inc" : ""}">${t.type === "income" ? "+" : ""}${yen(t.amount)}</span></div><div class="ds">${t.date.replace(/-/g, "/")}　<span class="chip">${esc(t.cat)}</span>${esc(t.item ? t.shop : "")}</div></button>`).join("") + (res.length > 200 ? `<p class="note">先頭の200件を表示しています。</p>` : "");
+        $("sres").innerHTML = `<p class="note">${res.length}件${tot ? "・支出 " + yen(tot) : ""}${inc ? "・収入 " + yen(inc) : ""}</p>` + res.slice(0, 200).map(t => `<button type="button" class="rc" data-rid="${esc(t.rid)}" style="border-left:4px solid ${color(t.type, t.cat)}"><div class="top"><span class="nm">${esc(t.item || t.shop || t.cat)}</span><span class="amt${t.type === "income" ? " inc" : ""}">${t.type === "income" ? "+" : ""}${yen(t.amount)}</span></div><div class="ds">${t.date.replace(/-/g, "/")}　${catChip(t.type, t.cat)}${esc(t.item ? t.shop : "")}</div></button>`).join("") + (res.length > 200 ? `<p class="note">先頭の200件を表示しています。</p>` : "");
       };
       ["sq", "sty", "scat", "sfrom", "sto"].forEach(id => $(id).addEventListener(id === "sq" ? "input" : "change", run)); run();
     }
