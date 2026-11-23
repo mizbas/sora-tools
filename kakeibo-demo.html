@@ -754,7 +754,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     let ok = false; try { ok = !DEMO && typeof D === "object" && D.fileId && (D.dirty || D.err); } catch (e) {}
     if (!ok) { el.innerHTML = ""; return; }
     el.innerHTML = `<div class="alert ${D.err ? "ng" : "info"}" style="display:flex;gap:10px;align-items:center"><span style="flex:1">${D.err ? "Googleドライブへの保存に失敗しています。" : "まだGoogleドライブに保存していない変更があります。"}${D.last ? `<br><small>最後の保存：${new Date(D.last).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</small>` : ""}</span><button type="button" class="ghostb" id="syncBarBtn" style="flex:none">今すぐ保存</button></div>`;
-    $("syncBarBtn").onclick = () => { el.querySelector(".alert").style.opacity = ".6"; syncNow(); };
+    $("syncBarBtn").onclick = () => { el.querySelector(".alert").style.opacity = ".6"; busy = false; syncNow(); };
   }
   function renderHome() {
     $("mLabel").textContent = mLabel(ym);
