@@ -125,6 +125,8 @@ textarea.io{width:100%;min-height:90px;font:12px/1.5 ui-monospace,monospace;bord
 .tabbar button.add svg{background:var(--primary);color:#fff;border-radius:50%;padding:3px;width:28px;height:28px;margin-top:-2px}
 .tabbar button.add.on{color:var(--primary)}
 .seg.full{display:flex}.seg.full button{flex:1}
+.backb{font:inherit;font-size:15px;font-weight:700;color:var(--primary);background:none;border:0;padding:12px 0 0;cursor:pointer}
+.backb+h1{margin-top:4px}
 .demo{background:#FFF6E0;border:1px solid #F0D58A;border-radius:var(--r-md);padding:10px 12px;margin:10px 0 4px;font-size:13px;line-height:1.7;color:#5A4500}
 .demo a{display:inline-block;margin-left:4px;color:var(--primary);font-weight:700}
 body.kb .demo{display:none}
@@ -167,6 +169,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
 
   <!-- 入力 -->
   <section class="view" id="v-input">
+    <button type="button" class="backb" id="inBack" style="display:none">‹ 戻る</button>
     <h1 id="inTitle">入力</h1>
     <div class="tools" id="inTools"><button type="button" id="modeBtn" title="Enterを押したときに進む順番">入れ方：1品ずつ</button><button type="button" id="draftSave">一時保存</button><button type="button" id="draftOpen">復元</button></div>
     <div id="draftBox"></div>
@@ -565,15 +568,33 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   function changed() { save(); renderAll(); autoSync(); }
 
   // ---- 画面切り替え ----
-  function go(v) {
+  // 画面の切り替え。ブラウザ・スマホの「戻る」で1つ前の画面（とスクロール位置）に戻れるよう履歴に積む
+  const navState = () => ({ v: view, ym, rp: typeof rpTab === "string" ? rpTab : "trend", y: Math.round(window.scrollY) });
+  function show(v) {
     if (v !== "input" && F && F.rid) F = null;
     view = v;
     document.body.classList.remove("kb");
     document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === "v-" + v));
     document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
     if (v === "input" && !F) newForm();
-    renderAll(); window.scrollTo(0, 0);
+    renderAll();
   }
+  function go(v, opt) {
+    const o = opt || {};
+    try { history.replaceState(navState(), ""); if (!o.replace) history.pushState({ v, ym, rp: navState().rp, y: 0 }, ""); else history.replaceState({ v, ym, rp: navState().rp, y: 0 }, ""); } catch (e) {}
+    show(v); window.scrollTo(0, 0);
+  }
+  function back(fallback) { if (history.state && history.length > 1 && navDepth > 0) history.back(); else go(fallback || "home", { replace: true }); }
+  let navDepth = 0;
+  const _push = history.pushState.bind(history); history.pushState = (...a) => { navDepth++; return _push(...a); };
+  window.addEventListener("popstate", e => {
+    const st = e.state || { v: "home" }; navDepth = Math.max(0, navDepth - 1);
+    if (F && F.rid && st.v !== "input") F = null;
+    if (st.ym) ym = st.ym;
+    if (st.rp && typeof rpTab === "string") { rpTab = st.rp; $("rpTab").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.r === rpTab)); }
+    if (st.v === "input" && F && !F.rid && st.edit) F = null;
+    show(st.v || "home"); requestAnimationFrame(() => window.scrollTo(0, st.y || 0));
+  });
   document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => { if (b.dataset.v === "input" && view === "input" && F && F.rid) return; go(b.dataset.v); });
 
   // ---- ホーム ----
@@ -615,7 +636,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   function editReceipt(rid) {
     const tx = K.live(S.tx).filter(t => t.rid === rid); if (!tx.length) return;
     F = { rid, type: tx[0].type, date: tx[0].date, shop: tx[0].shop || "", tax: "incl", memo: tx.find(t => t.memo) ? tx.find(t => t.memo).memo : "", rows: tx.map(t => ({ id: t.id, item: t.item, cat: t.cat, amount: Math.round((t.amount + (t.disc || 0)) / (t.qty || 1)), qty: t.qty || 1, rate: "", disc: t.disc || "", uval: t.uval || "", utype: t.utype || "g", more: !!(t.disc || t.uval), catTouched: true })) };
-    go("input"); drawForm();
+    go("input"); try { history.replaceState(Object.assign({}, history.state, { edit: rid }), ""); } catch (e) {} drawForm();
   }
   let SG = { shops: [], items: [] };
   const catTax = name => String((K.live(S.cats).find(c => c.type === "expense" && c.name === name) || {}).tax || "");
@@ -629,7 +650,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     $("inShop").placeholder = F.type === "income" ? "例：会社" : "例：スーパー";
     $("inDate").value = F.date; $("inShop").value = F.shop; $("inMemo").value = F.memo;
     $("saveBtn").textContent = F.rid ? "保存する" : "登録する";
-    $("editOps").style.display = F.rid ? "" : "none";
+    $("editOps").style.display = F.rid ? "" : "none"; $("inBack").style.display = F.rid ? "" : "none";
     $("inTools").style.display = F.rid ? "none" : ""; $("draftOpen").textContent = "復元" + (drafts().length ? "（" + drafts().length + "）" : "");
     $("modeBtn").textContent = P.mode !== "h" ? "入れ方：品名をまとめて" : "入れ方：1品ずつ";
     SG = K.suggest(S);
@@ -812,10 +833,11 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const wasEdit = !!F.rid; ym = F.date.slice(0, 7);
     F = null; changed();
     toast(wasEdit ? "保存しました" : `${yen(rc.total)}を登録しました`);
-    if (wasEdit) go("home"); else { newForm(); window.scrollTo(0, 0); }
+    if (wasEdit) back("home"); else { newForm(); window.scrollTo(0, 0); }
   };
-  $("cancelEdit").onclick = () => { F = null; go("home"); };
-  $("delRc").onclick = () => { if (!confirm("このレシートの記録を削除しますか？")) return; const t = now(); S.tx.forEach(x => { if (x.rid === F.rid && !x.del) Object.assign(x, { del: true, updatedAt: t }); }); F = null; changed(); toast("削除しました"); go("home"); };
+  $("cancelEdit").onclick = () => { F = null; back("home"); };
+  $("inBack").onclick = () => { F = null; back("home"); };
+  $("delRc").onclick = () => { if (!confirm("このレシートの記録を削除しますか？")) return; const t = now(); S.tx.forEach(x => { if (x.rid === F.rid && !x.del) Object.assign(x, { del: true, updatedAt: t }); }); F = null; changed(); toast("削除しました"); back("home"); };
 
   // ---- 一時保存（この端末だけ）----
   const DRK = "sora.kakeibo.drafts";
@@ -1038,6 +1060,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     else if (view === "set") { renderSet(); drawDrive(); }
   }
   newForm(); F = null;
+  try { history.replaceState({ v: "home", ym, rp: "trend", y: 0 }, ""); } catch (e) {}
   drawDrive(); renderAll();
   if (DEMO) {
     document.title = "わが家の家計簿 お試し版（無料）｜そらのツール箱";
