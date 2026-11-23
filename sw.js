@@ -1,6 +1,6 @@
 // オフラインでも開けるようにするためのキャッシュ（ビルドごとに更新）
-const CACHE = "sora-tools-mwtf9jjh";
-const SHELL = ["./", "index.html", "tool.html", "crypto.js?v=mwtf9jjh", "app.css", "app.css?v=mwtf9jjh", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const CACHE = "sora-tools-mwtfc3j7";
+const SHELL = ["./", "index.html", "tool.html", "crypto.js?v=mwtfc3j7", "app.css", "app.css?v=mwtfc3j7", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -8,7 +8,9 @@ self.addEventListener("activate", e => {
 // まずネットから取り、つながらないときはキャッシュを使う
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
-  e.respondWith(fetch(e.request).then(res => {
+  // 同じサイトのファイルは毎回更新を確認する（古い版が10分ほど残るのを防ぐ）
+  const same = new URL(e.request.url).origin === location.origin;
+  e.respondWith(fetch(same ? new Request(e.request.url, { cache: "no-cache", credentials: "same-origin" }) : e.request).then(res => {
     const copy = res.clone();
     caches.open(CACHE).then(c => c.put(e.request, copy));
     return res;
