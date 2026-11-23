@@ -125,6 +125,13 @@ textarea.io{width:100%;min-height:90px;font:12px/1.5 ui-monospace,monospace;bord
 .tabbar button.add svg{background:var(--primary);color:#fff;border-radius:50%;padding:3px;width:28px;height:28px;margin-top:-2px}
 .tabbar button.add.on{color:var(--primary)}
 .seg.full{display:flex}.seg.full button{flex:1}
+.fx{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;text-align:left;width:100%;background:none;border-left:0;border-right:0;border-top:0;font:inherit;color:var(--ink)}
+.fx b{font-size:15px}.fx .a{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.fx .d{font-size:12.5px;color:var(--sub);grid-column:1/3}
+.fx.off{opacity:.55}
+.fxf{border:1px solid var(--line);border-radius:var(--r-md);padding:12px;margin:10px 0;background:var(--fill)}
+.fxf .in,.fxf select{background:#fff}
+.chip.auto{background:var(--primary-soft);color:var(--primary)}
 .backb{font:inherit;font-size:15px;font-weight:700;color:var(--primary);background:none;border:0;padding:12px 0 0;cursor:pointer}
 .backb+h1{margin-top:4px}
 .cdt{display:flex;align-items:center;gap:10px}.cdt .dot{width:16px;height:16px;border-radius:4px;display:inline-block}
@@ -166,6 +173,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   <!-- ホーム -->
   <section class="view on" id="v-home">
     <div class="mnav"><button type="button" data-m="-1" aria-label="前の月">‹</button><b id="mLabel"></b><button type="button" data-m="1" aria-label="次の月">›</button></div>
+    <div id="fxAlert"></div>
     <div class="sum" id="sum"></div>
     <section class="card" id="catCard"><h2>カテゴリ別の支出</h2><div id="cats"></div></section>
     <section class="card"><h2>記録</h2><div id="dayList"></div></section>
@@ -226,6 +234,12 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <div class="field" style="border-top:0"><label for="byName">この端末で入力する人<small>記録に「誰が入力したか」が付きます</small></label><input type="text" id="byName" placeholder="例：そら" maxlength="10"></div>
       <div id="drive"></div>
     </section>
+    <section class="card" id="fxCard"><h2>固定費・サブスク（自動で記録）</h2>
+      <p class="note" style="margin:0 0 6px">家賃・スマホ代・保険・サブスクなど、毎月・毎年決まった日に払うものを登録しておくと、請求日が来た分を、アプリを開いたときに自動で家計簿に記録します。家族と同期していても二重には入りません。</p>
+      <div id="fxSum"></div><div id="fxList"></div><div id="fxForm"></div>
+      <button type="button" class="ghostb wide" id="fxAdd">＋ 固定費・サブスクを追加</button>
+      <button type="button" class="ghostb wide" id="fxImport" style="display:none">「サブスク管理」のデータを読み込む</button>
+    </section>
     <section class="card"><h2>月の予算</h2><p class="note" style="margin:0 0 4px">カテゴリごとに1か月の予算を入れると、ホームで使いすぎがわかります。0なら予算なし。</p><div id="budgets"></div><p class="note" id="budTotal"></p></section>
     <section class="card"><h2>貯金の目標</h2><div id="goals"></div>
       <div class="f2"><div><label class="lbl" for="gName">目標の名前</label><input type="text" id="gName" class="in" placeholder="例：旅行"></div><div><label class="lbl" for="gTarget">目標金額</label><input type="number" id="gTarget" class="in" inputmode="numeric" step="1000" min="0" data-nomoney placeholder="300000"></div></div>
@@ -259,7 +273,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <details><summary>値引きや容量を入れたい</summary><div class="a">品目の下の「＋ 値引き・容量」を押すと、値引き額と容量（g・mL・個）を入れられます。容量は入れなくても大丈夫です。品名に「牛乳1L」「鶏むね600g」「卵10個入り」のように量が書いてあれば、自動で読み取って、底値帳で100mLあたり・100gあたりの値段を比べます。量がわからない品物は1点あたりの値段で比べます。</div></details>
       <details><summary>底値帳の使い方</summary><div class="a">「振り返り」→「底値」で品名を入れると、これまでに買った値段が安い順に並び、いちばん安かったお店と日付がわかります。品名に含まれる言葉で探すので、「牛乳」で「牛乳1L」や「低脂肪牛乳」もまとめて出ます。品名に量（1L、500mlなど）が入っていれば、サイズ違いも100mLあたりで比べます。漢字とひらがなはまとめられないので、品名の書き方はそろえておくと便利です。</div></details>
       <details><summary>途中まで入れたレシートをあとで続けたい</summary><div class="a">入力画面の右上の「一時保存」を押すと、入力中の内容をこの端末に5件まで取っておけます。「復元」から続きを入れられます。</div></details>
-      <details><summary>サブスクも管理したい</summary><div class="a">定額サービスの請求日や無料期間の管理は、別のツール<a href="tool.html?id=subsc">「サブスク管理」</a>が向いています（別売り）。</div></details>
+      <details><summary>家賃やサブスクを毎月入れるのが面倒</summary><div class="a">「設定・共有」の「固定費・サブスク（自動で記録）」に登録すると、請求日が来た分を、アプリを開いたときに自動で記録します。何日か開かなくても、次に開いたときにまとめて入ります（さかのぼるのは45日まで）。自動で入った記録には「自動」の印が付きます。金額が違った月は、その記録を開いて直せます。無料期間があるサブスクは「無料期間の終わり」を入れておくと、それまでは記録せず、終わりが近づくとホームでお知らせします。</div></details>
       <details><summary>ホーム画面に置きたい</summary><div class="a">iPhoneはSafariの共有ボタンから「ホーム画面に追加」、AndroidはChromeのメニューから「ホーム画面に追加」で、アプリのように開けます。</div></details>
     </section>
   </section>
@@ -278,7 +292,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
 <script>
 // 家計簿（そらのツール箱）計算ロジック
 (function (root) {
-  const COLS = ["tx", "cats", "budgets", "goals", "rules", "memo"];
+  const COLS = ["tx", "cats", "budgets", "goals", "rules", "memo", "fixed"];
   const num = v => { const x = Number(String(v == null ? "" : v).replace(/[,，円¥\s]/g, "")); return isFinite(x) ? x : 0; };
   const pad = n => String(n).padStart(2, "0");
   const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
@@ -296,7 +310,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     DEF_INC.forEach((n, i) => out.push({ id: "c_i" + i, name: n, type: "income", color: PALETTE[(i + 2) % PALETTE.length], order: 100 + i, updatedAt: t }));
     return out;
   }
-  function empty() { return { v: 1, tx: [], cats: defaultCats(0), budgets: [], goals: [], rules: [], memo: [] }; }
+  function empty() { return { v: 1, tx: [], cats: defaultCats(0), budgets: [], goals: [], rules: [], memo: [], fixed: [] }; }
   function norm(s) {
     const o = Object.assign(empty(), s && typeof s === "object" ? s : {});
     COLS.forEach(k => { if (!Array.isArray(o[k])) o[k] = k === "cats" ? defaultCats(0) : []; });
@@ -447,6 +461,54 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       items: Object.values(im).sort((a, b) => b.total - a.total), shops: Object.values(sm).map(x => ({ shop: x.shop, total: x.total, n: Object.keys(x.rids).length })).sort((a, b) => b.total - a.total) };
   }
 
+  // ---- 固定費・サブスク（開いたときに、来た請求日の分を自動で記録）----
+  // rule: { id, name, amount, cat, cycle: "month"|"year", day: 1〜31 or 99(末日), month: 1〜12, from: "YYYY-MM-DD", trialEnd, status: "active"|"stopped" }
+  const dim = (y, m) => new Date(y, m, 0).getDate();
+  function dueIn(rule, y, m) {
+    if (rule.cycle === "year" && Number(rule.month) !== m) return null;
+    const last = dim(y, m), d = Number(rule.day) === 99 ? last : Math.min(Number(rule.day) || 1, last);
+    return y + "-" + pad(m) + "-" + pad(d);
+  }
+  function dueDates(rule, from, to) {
+    const out = []; let [y, m] = from.slice(0, 7).split("-").map(Number); const [ty, tm] = to.slice(0, 7).split("-").map(Number);
+    while (y < ty || (y === ty && m <= tm)) { const d = dueIn(rule, y, m); if (d && d >= from && d <= to) out.push(d); m++; if (m > 12) { m = 1; y++; } }
+    return out;
+  }
+  function nextDue(rule, today) {
+    const [y, m] = today.slice(0, 7).split("-").map(Number);
+    for (let k = 0; k < 14; k++) { const yy = y + Math.floor((m - 1 + k) / 12), mm = ((m - 1 + k) % 12) + 1, d = dueIn(rule, yy, mm); if (d && d >= today) return d; }
+    return "";
+  }
+  const fxId = (rule, date) => "fx_" + rule.id + "_" + date;
+  // まだ記録していない請求日の分（家族の端末と同じIDになるので二重にならない。消した記録も復活しない）
+  function autoPost(s, today, lookback) {
+    const have = {}; (s.tx || []).forEach(t => { have[t.id] = 1; });
+    const lim = ymd(new Date(new Date(today + "T00:00").getTime() - (lookback || 45) * 86400000)), add = [];
+    live(s.fixed).forEach(r => {
+      if (r.status === "stopped" || !(num(r.amount) > 0)) return;
+      const from = r.from && r.from > lim ? r.from : lim;
+      if (r.trialEnd && r.trialEnd > today) return; // 無料期間中はまだ記録しない
+      dueDates(r, from, today).forEach(d => { if (r.trialEnd && d <= r.trialEnd) return; const id = fxId(r, d); if (have[id]) return; have[id] = 1;
+        add.push({ id, rid: id, date: d, type: "expense", amount: Math.round(num(r.amount)), cat: r.cat || "その他", item: r.name, shop: "", qty: 1, memo: "", by: "自動", auto: true, createdAt: 0, updatedAt: 1 }); });
+    });
+    return add;
+  }
+  function fixedSummary(s, today) {
+    const list = live(s.fixed).map(r => Object.assign({}, r, { next: r.status === "stopped" ? "" : nextDue(r, r.trialEnd && r.trialEnd >= today ? ymd(new Date(new Date(r.trialEnd + "T00:00").getTime() + 86400000)) : today), perMonth: r.status === "stopped" ? 0 : Math.round(num(r.amount) / (r.cycle === "year" ? 12 : 1)) }))
+      .sort((a, b) => ((a.status === "stopped") - (b.status === "stopped")) || ((a.next || "9") < (b.next || "9") ? -1 : (a.next || "9") > (b.next || "9") ? 1 : 0));
+    const trials = list.filter(r => r.status !== "stopped" && r.trialEnd && r.trialEnd >= today).map(r => Object.assign({}, r, { left: Math.round((new Date(r.trialEnd + "T00:00") - new Date(today + "T00:00")) / 86400000) })).sort((a, b) => a.left - b.left);
+    return { list, perMonth: list.reduce((a, r) => a + r.perMonth, 0), perYear: list.reduce((a, r) => a + (r.status === "stopped" ? 0 : Math.round(num(r.amount) * (r.cycle === "year" ? 1 : 12))), 0), trials };
+  }
+  // 「サブスク管理」のデータから取り込む（毎月・毎年のものだけ）
+  function fromSubsc(items, today) {
+    const out = [], skipped = [];
+    (items || []).filter(x => x && !x.del && x.status !== "cancel").forEach(x => {
+      if (x.cycle !== "month" && x.cycle !== "year") { skipped.push(x.name); return; }
+      out.push({ id: "fs" + String(x.id || x.name).replace(/[^\w]/g, "").slice(0, 20), name: x.name, amount: Math.round(num(x.amount)), cat: "", cycle: x.cycle, day: Number(x.day) || 1, month: Number(x.month) || 1, from: today, trialEnd: x.trialEnd || "", status: x.status === "stopped" ? "stopped" : "active", updatedAt: Date.now() });
+    });
+    return { rules: out, skipped };
+  }
+
   function goal(g, ym) {
     const saved = num(g.saved), target = num(g.target), left = Math.max(0, target - saved);
     let months = 0, per = 0;
@@ -556,7 +618,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, catDetail, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, catDetail, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -601,6 +663,11 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     st.goals.push({ id: "g1", name: "家族旅行", target: 300000, saved: 120000, deadline: K.ymd(new Date(Y, M + 6, 1)).slice(0, 7), updatedAt: 1 });
     ["牛乳", "卵", "トイレットペーパー"].forEach((x, i) => st.memo.push({ id: "m" + i, text: x, done: false, by: i ? "夫" : "妻", createdAt: i + 1, updatedAt: 1 }));
     st.rules.push({ id: "u1", kw: "ENEOS", cat: "車", updatedAt: 1 });
+    const ago = K.ymd(new Date(Y, M - 2, 1)), soon = K.ymd(new Date(Y, M, D + 5));
+    st.fixed.push({ id: "fdemo1", name: "動画配信サービス", amount: 1590, cat: "趣味・娯楽", cycle: "month", day: 15, from: ago, status: "active", updatedAt: 1 },
+      { id: "fdemo2", name: "音楽サブスク", amount: 1080, cat: "趣味・娯楽", cycle: "month", day: 1, from: ago, status: "active", updatedAt: 1 },
+      { id: "fdemo3", name: "雑誌読み放題", amount: 580, cat: "趣味・娯楽", cycle: "month", day: 28, from: ago, trialEnd: soon, status: "active", updatedAt: 1 },
+      { id: "fdemo4", name: "自動車保険", amount: 42000, cat: "保険", cycle: "year", month: 4, day: 10, from: ago, status: "active", updatedAt: 1 });
     return st;
   }
   const now = () => Date.now();
@@ -649,6 +716,8 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   document.querySelectorAll(".mnav button").forEach(b => b.onclick = () => { ym = K.addYm(ym, Number(b.dataset.m)); renderHome(); });
   function renderHome() {
     $("mLabel").textContent = mLabel(ym);
+    const fsum = K.fixedSummary(S, today()), soon = fsum.trials.filter(t => t.left <= 14);
+    $("fxAlert").innerHTML = soon.map(t => `<div class="alert ${t.left <= 3 ? "ng" : "info"}"><strong>${esc(t.name)}の無料期間があと${t.left}日（${md(t.trialEnd)}まで）</strong>続けないなら、それまでに解約を。続けるなら${yen(t.amount)}が${t.cycle === "year" ? "毎年" : "毎月"}かかります。</div>`).join("");
     const m = K.month(S, ym), cur = ym === today().slice(0, 7), day = cur ? Number(today().slice(8)) : m.days;
     let pace = "";
     if (m.budget) {
@@ -669,7 +738,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const items = r.rows.map(t => t.item).filter(Boolean), cs = [...new Set(r.rows.map(t => t.cat))];
     const title = r.shop || items[0] || cs[0], desc = (r.shop ? items : items.slice(1)).join("、");
     return `<button type="button" class="rc" data-rid="${esc(r.rid)}"><div class="top"><span class="nm">${esc(title)}</span><span class="amt${r.type === "income" ? " inc" : ""}">${r.type === "income" ? "+" : ""}${yen(r.total)}</span></div>
-      <div class="ds">${cs.map(c => `<span class="chip">${esc(c)}</span>`).join("")}${esc(desc)}${r.by ? `<span style="float:right">${esc(r.by)}</span>` : ""}</div></button>`;
+      <div class="ds">${r.rows.some(t => t.auto) ? `<span class="chip auto">自動</span>` : ""}${cs.map(c => `<span class="chip">${esc(c)}</span>`).join("")}${esc(desc)}${r.by && r.by !== "自動" ? `<span style="float:right">${esc(r.by)}</span>` : ""}</div></button>`;
   }
   document.addEventListener("click", e => { const b = e.target.closest(".rc"); if (b) return editReceipt(b.dataset.rid); const c = e.target.closest(".cbar[data-cat]"); if (c) openCat(c.dataset.cat); });
   $("cats").addEventListener("keydown", e => { const c = e.target.closest(".cbar[data-cat]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openCat(c.dataset.cat); } });
@@ -1081,6 +1150,58 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   $("rAdd").onclick = () => { const kw = $("rKw").value.trim(); if (!kw) return; S.rules.push({ id: K.uid("u"), kw, cat: $("rCat").value, updatedAt: now() }); $("rKw").value = ""; changed(); toast("ルールを追加しました"); };
   $("rules").addEventListener("click", e => { if (e.target.dataset.ra !== "del") return; const r = S.rules.find(x => x.id === e.target.closest(".li").dataset.r); Object.assign(r, { del: true, updatedAt: now() }); changed(); });
 
+  // ---- 固定費・サブスク ----
+  let fxEdit = null; // 編集中のルール（新規は {}）
+  const dayLabel = r => (r.cycle === "year" ? `毎年${r.month}月` : "毎月") + (Number(r.day) === 99 ? "末日" : `${r.day}日`);
+  function renderFixed() {
+    const f = K.fixedSummary(S, today());
+    $("fxSum").innerHTML = f.list.length ? `<p class="note" style="margin:0">登録 ${f.list.filter(r => r.status !== "stopped").length}件・月あたり <b>${yen(f.perMonth)}</b>（年 ${yen(f.perYear)}）</p>` : "";
+    $("fxList").innerHTML = f.list.map(r => `<button type="button" class="fx${r.status === "stopped" ? " off" : ""}" data-fx="${esc(r.id)}"><b>${esc(r.name)}</b><span class="a">${yen(r.amount)}</span><span class="d">${dayLabel(r)}・${esc(r.cat || "その他")}${r.status === "stopped" ? "・停止中" : r.next ? `・次は${md(r.next)}` : ""}${r.trialEnd && r.trialEnd >= today() ? `・無料期間は${md(r.trialEnd)}まで` : ""}</span></button>`).join("");
+    let has = false; try { const L = JSON.parse(localStorage.getItem("sora.subsc.v1") || "[]"); has = Array.isArray(L) && L.some(x => x && !x.del); } catch (e) {}
+    $("fxImport").style.display = has && !DEMO ? "" : "none";
+    drawFxForm();
+  }
+  function drawFxForm() {
+    const box = $("fxForm"); if (!fxEdit) { box.innerHTML = ""; $("fxAdd").style.display = ""; return; }
+    $("fxAdd").style.display = "none"; const r = fxEdit, isNew = !r.id;
+    const days = Array.from({ length: 31 }, (_, i) => i + 1).map(d => `<option value="${d}"${Number(r.day) === d ? " selected" : ""}>${d}日</option>`).join("") + `<option value="99"${Number(r.day) === 99 ? " selected" : ""}>末日</option>`;
+    box.innerHTML = `<div class="fxf"><label class="lbl" for="fxName">名前</label><input type="text" id="fxName" class="in" value="${esc(r.name || "")}" placeholder="例：家賃、Netflix、スマホ代">
+      <div class="f2"><div><label class="lbl" for="fxAmt">金額</label><input type="text" id="fxAmt" class="in" inputmode="numeric" value="${esc(fmtAmt(r.amount || ""))}" placeholder="例：1,590"></div><div><label class="lbl" for="fxCat">カテゴリ</label><select id="fxCat" class="in">${catOpts("expense", r.cat || "通信")}</select></div></div>
+      <label class="lbl">払う日</label><div class="seg full" id="fxCyc"><button type="button" data-c="month"${r.cycle !== "year" ? ' class="on"' : ""}>毎月</button><button type="button" data-c="year"${r.cycle === "year" ? ' class="on"' : ""}>毎年</button></div>
+      <div class="f2" style="margin-top:8px"><select id="fxMon" class="in"${r.cycle === "year" ? "" : ' style="visibility:hidden"'}>${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}"${Number(r.month) === i + 1 ? " selected" : ""}>${i + 1}月</option>`).join("")}</select><select id="fxDay" class="in">${days}</select></div>
+      <label class="lbl" for="fxTrial">無料期間の終わり（あれば）</label><input type="date" id="fxTrial" class="in" value="${esc(r.trialEnd || "")}">
+      <label style="display:flex;gap:8px;align-items:center;font-size:14px;margin-top:10px"><input type="checkbox" id="fxStop"${r.status === "stopped" ? " checked" : ""}>停止中（解約した・しばらく止めている）</label>
+      <div class="sub2" style="margin-top:12px"><button type="button" class="primary" id="fxSave" style="flex:1">${isNew ? "登録する" : "保存する"}</button><button type="button" class="ghostb" id="fxCancel">やめる</button>${isNew ? "" : `<button type="button" class="ghostb neg" id="fxDel">削除</button>`}</div>
+      ${isNew ? `<p class="note">登録した日から先の請求日の分を、自動で記録します。今月すでに払った分は、ふつうに入力してください。</p>` : ""}</div>`;
+    $("fxCyc").onclick = e => { const b = e.target.closest("button"); if (!b) return; $("fxCyc").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); $("fxMon").style.visibility = b.dataset.c === "year" ? "visible" : "hidden"; };
+    $("fxAmt").oninput = e => { const v = fmtAmt(e.target.value); if (e.target.value !== v) e.target.value = v; };
+    $("fxCancel").onclick = () => { fxEdit = null; drawFxForm(); };
+    if (!isNew) $("fxDel").onclick = () => { if (!confirm(`「${r.name}」を削除しますか？（これまでに記録した分は残ります）`)) return; const x = S.fixed.find(z => z.id === r.id); Object.assign(x, { del: true, updatedAt: now() }); fxEdit = null; changed(); toast("削除しました"); };
+    $("fxSave").onclick = () => {
+      const name = $("fxName").value.trim(), amount = K.num($("fxAmt").value);
+      if (!name || !(amount > 0)) { toast("名前と金額を入れてください"); return; }
+      const o = { name, amount: Math.round(amount), cat: $("fxCat").value, cycle: $("fxCyc").querySelector(".on").dataset.c, day: Number($("fxDay").value), month: Number($("fxMon").value), trialEnd: $("fxTrial").value || "", status: $("fxStop").checked ? "stopped" : "active", updatedAt: now() };
+      if (r.id) Object.assign(S.fixed.find(z => z.id === r.id), o); else S.fixed.push(Object.assign({ id: K.uid("f"), from: today() }, o));
+      fxEdit = null; changed(); runAuto(); toast(r.id ? "保存しました" : "登録しました");
+    };
+    $("fxName").focus();
+  }
+  $("fxAdd").onclick = () => { fxEdit = { cycle: "month", day: Number(today().slice(8)), month: Number(today().slice(5, 7)), cat: "通信" }; drawFxForm(); };
+  $("fxList").addEventListener("click", e => { const b = e.target.closest("[data-fx]"); if (!b) return; const r = S.fixed.find(x => x.id === b.dataset.fx); fxEdit = Object.assign({}, r); drawFxForm(); $("fxForm").scrollIntoView({ block: "center", behavior: "smooth" }); });
+  $("fxImport").onclick = () => {
+    let L = []; try { L = JSON.parse(localStorage.getItem("sora.subsc.v1") || "[]"); } catch (e) {}
+    const r = K.fromSubsc(L, today()), haveName = {}; K.live(S.fixed).forEach(x => { haveName[x.name] = 1; });
+    const add = r.rules.filter(x => !haveName[x.name]); add.forEach(x => { x.cat = x.cat || "趣味・娯楽"; S.fixed.push(x); });
+    changed(); toast(`${add.length}件を読み込みました` + (r.skipped.length ? `（${r.skipped.length}件は毎月・毎年以外なので読み込んでいません）` : ""));
+  };
+  // 開いたとき・同期したとき・画面に戻ったときに、来た請求日の分を記録する
+  function runAuto() {
+    const add = K.autoPost(S, today(), 45); if (!add.length) return 0;
+    add.forEach(t => { t.createdAt = now(); t.updatedAt = now(); }); S.tx.push(...add); save(); renderAll(); autoSync();
+    toast(`固定費・サブスクを${add.length}件、自動で記録しました`); return add.length;
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") runAuto(); });
+
   // CSV取り込み
   let IMP = null;
   function decode(buf) { const u = new TextDecoder("utf-8").decode(buf); if (!u.includes("�")) return u; try { return new TextDecoder("shift_jis").decode(buf); } catch (e) { return u; } }
@@ -1130,11 +1251,11 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     else if (view === "report") renderReport();
     else if (view === "memo") renderMemo();
     else if (view === "cat") renderCat();
-    else if (view === "set") { renderSet(); drawDrive(); }
+    else if (view === "set") { renderSet(); renderFixed(); drawDrive(); }
   }
   newForm(); F = null;
   try { history.replaceState({ v: "home", ym, rp: "trend", y: 0 }, ""); } catch (e) {}
-  drawDrive(); renderAll();
+  drawDrive(); renderAll(); setTimeout(runAuto, 600);
   if (DEMO) {
     document.title = "わが家の家計簿 お試し版（無料）｜そらのツール箱";
     const ban = document.createElement("div"); ban.className = "demo";
