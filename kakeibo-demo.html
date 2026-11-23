@@ -581,7 +581,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     }
     [["食費", 45000], ["日用品", 6000], ["外食", 8000], ["車", 12000], ["水道・光熱", 18000], ["通信", 8000], ["衣服・美容", 5000]].forEach(([c, a]) => st.budgets.push({ id: "b_" + c, cat: c, amount: a, updatedAt: 1 }));
     st.goals.push({ id: "g1", name: "家族旅行", target: 300000, saved: 120000, deadline: K.ymd(new Date(Y, M + 6, 1)).slice(0, 7), updatedAt: 1 });
-    ["牛乳", "卵", "トイレットペーパー"].forEach((x, i) => st.memo.push({ id: "m" + i, text: x, done: false, by: i ? "夫" : "妻", createdAt: i, updatedAt: 1 }));
+    ["牛乳", "卵", "トイレットペーパー"].forEach((x, i) => st.memo.push({ id: "m" + i, text: x, done: false, by: i ? "夫" : "妻", createdAt: i + 1, updatedAt: 1 }));
     st.rules.push({ id: "u1", kw: "ENEOS", cat: "車", updatedAt: 1 });
     return st;
   }
@@ -981,7 +981,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
         if (!priceQ) { box.innerHTML = its.length ? `<p class="note">よく買う品物</p><div class="chips">${its.slice(0, 30).map(x => `<button type="button" data-pi="${esc(x.item)}">${esc(x.item)}</button>`).join("")}</div>` : `<p class="empty">入力のときに「値引き・容量」から容量（g・mL・個）を入れると、100gあたりなどの値段で比べられます。同じ品物を2回以上買うと、ここに出てきます。</p>`; return; }
         const b = K.priceBook(S, priceQ), fmt = v => v == null ? "-" : (Math.round(v * 10) / 10).toLocaleString("ja-JP") + "円";
         if (!b.rows.length) { box.innerHTML = `<p class="empty">「${esc(priceQ)}」を買った記録はありません。</p>`; return; }
-        box.innerHTML = (b.best ? `<div class="best"><span class="note" style="margin:0">いちばん安かったのは（${b.label}）</span><br><b>${fmt(b.val(b.best))}</b>　${esc(b.best.shop || "お店なし")}・${b.best.date.slice(0, 7).replace("-", "年")}月${Number(b.best.date.slice(8))}日</div>` : "")
+        box.innerHTML = (b.best ? `<div class="best"><span class="note" style="margin:0">いちばん安かったのは（${b.label}）</span><br><b>${fmt(b.val(b.best))}</b>　${esc(b.best.shop || "お店なし")}・${b.best.date.slice(0, 4)}年${Number(b.best.date.slice(5, 7))}月${Number(b.best.date.slice(8))}日</div>` : "")
           + (b.shops.length > 1 ? `<p class="note">お店ごとのいちばん安い値段（${b.label}）</p><table class="t">${b.shops.map((x, i) => `<tr class="${i ? "" : "cheap"}"><td>${esc(x.shop)}</td><td>${fmt(x.v)}</td></tr>`).join("")}</table>` : "")
           + `<p class="note">買った記録（安い順・税込・値引き後）</p><table class="t"><tr><th>日付・お店</th><th>値段</th><th>${b.label}</th></tr>${b.rows.slice(0, 100).map(r => `<tr><td>${r.date.slice(5).replace("-", "/")} ${esc(r.shop)}<br><span class="note" style="margin:0">${esc(r.item)}${r.uval ? " " + r.uval + r.utype : ""}${r.qty > 1 ? " ×" + r.qty : ""}</span></td><td>${yen(r.amount)}</td><td>${fmt(b.val(r))}</td></tr>`).join("")}</table>`
           + (b.rows.some(r => b.val(r) == null) ? `<p class="note">容量の単位がちがう記録・容量のない記録は「-」で、比べる対象から外しています。</p>` : "");
