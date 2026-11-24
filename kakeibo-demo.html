@@ -591,7 +591,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   // カテゴリの中身（その月）：品目別・お店別・記録の一覧と先月との比較
   function catDetail(s, ym, cat, type, upto) {
     const ty = type || "expense", inCat = t => t.type === ty && t.cat === cat;
-    const rows = live(s.tx).filter(t => inCat(t) && inYm(t, ym)).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (b.createdAt || 0) - (a.createdAt || 0)));
+    const rows = live(s.tx).filter(t => inCat(t) && inYm(t, ym)).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (b.createdAt || b.updatedAt || 0) - (a.createdAt || a.updatedAt || 0)));
     const total = rows.reduce((a, t) => a + t.amount, 0);
     // upto（日）を渡すと、先月も同じ日までで比べる（月の途中で比べるため）
     const last = live(s.tx).filter(t => inCat(t) && inYm(t, addYm(ym, -1)) && (!upto || Number(t.date.slice(8, 10)) <= upto)).reduce((a, t) => a + t.amount, 0);
@@ -770,7 +770,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   const DEF = { type: "expense", qty: 1, memo: "", shop: "", by: "", disc: 0, uval: 0, utype: "", item: "" };
   function compact(s) {
     const o = Object.assign({}, s);
-    o.tx = (s.tx || []).map(t => { const x = {}; Object.keys(t).forEach(k => { const v = t[k]; if (v === undefined || v === null || (k in DEF && v === DEF[k]) || (k === "rid" && v === t.id) || v === false) return; x[k] = v; }); return x; });
+    o.tx = (s.tx || []).map(t => { const x = {}; Object.keys(t).forEach(k => { const v = t[k]; if (v === undefined || v === null || (k in DEF && v === DEF[k]) || (k === "rid" && v === t.id) || (k === "createdAt" && v === t.updatedAt) || v === false) return; x[k] = v; }); return x; });
     return o;
   }
   const packDrive = s => JSON.stringify({ app: "sora-kakeibo", v: 1, savedAt: Date.now(), data: compact(s) });
@@ -801,7 +801,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   const DEMO = true, BUY = "https://note.com/tmsora8496/n/n76c5e7c5bfd1";
   let S; try { S = DEMO ? sample() : K.norm(JSON.parse(localStorage.getItem(KEY) || "null")); } catch (e) { S = K.norm(null); }
   let P = {}; try { P = DEMO ? { name: "そら" } : JSON.parse(localStorage.getItem(PKEY) || "{}") || {}; } catch (e) { P = {}; }
-  const save = () => { if (DEMO) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast("保存できませんでした（端末の空き容量を確認してください）"); }
+  const save = () => { if (DEMO) return; try { localStorage.setItem(KEY, JSON.stringify(K.compact(S))); } catch (e) { toast("保存できませんでした（端末の空き容量を確認してください）"); }
     try { if (typeof D === "object" && D.fileId && !D.dirty) { D.dirty = true; dsave(); } } catch (e) {} };
   const psave = () => { if (DEMO) return; try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {} };
   // お試し版の見本データ（今月と過去11か月）
