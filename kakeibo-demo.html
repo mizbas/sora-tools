@@ -106,7 +106,13 @@ input[type=date].in{font:inherit;font-size:16px;padding:9px 11px;border:1px soli
 .dd li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dd li span b{color:var(--primary)}
 .dd li.act span b{color:#fff}
-.dd.below li{padding:12px 14px;font-size:15.5px}
+.sg{list-style:none;margin:6px 0 0;padding:0;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;box-shadow:0 4px 14px rgba(20,40,75,.08)}
+.sg li{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:10px 12px;font-size:15px;border-top:1px solid var(--fill);cursor:pointer;-webkit-user-select:none;user-select:none}
+.sg li:first-child{border-top:0}
+.sg li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sg li span b{color:var(--primary)}
+.sg li small{color:var(--sub);font-size:12px;white-space:nowrap;flex:none}
+.sg li.act,.sg li:active{background:var(--primary-soft)}
 .dd li.act{background:var(--primary);color:#fff}.dd li.act small{color:#fff}
 body.kb .tabbar,body.kb .foot,body.kb header,body.kb #inTools,body.kb #v-input h1{display:none}
 body.kb{padding-bottom:45vh}
@@ -1088,7 +1094,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   }
 
   // ---- 入力候補（お店・カテゴリ・品名）と Enter で次へ ----
-  const DD = $("dd"); let ddFor = null, ddItems = [], ddAct = -1;
+  const DD = $("dd"); let ddFor = null, ddItems = [], ddAct = -1, ddEl = DD;
   // 入力した文字に合う部分を太字にする（ひらがな・カタカナの違いは気にしない）
   function hiMatch(name, q) {
     const n = String(name), t = K.normName(q); if (!t) return esc(n);
@@ -1099,20 +1105,44 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   function ddShow(input, items, opt) {
     ddFor = input; ddItems = items.slice(0, 8); ddAct = -1; ddBelow = !!(opt && opt.below);
     if (!ddItems.length || document.activeElement !== input) { ddHide(); return; }
-    DD.innerHTML = ddItems.map((x, i) => `<li data-i="${i}"><span>${x.html || esc(x.label)}</span>${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</li>`).join("");
-    DD.classList.toggle("below", ddBelow); ddPlace(input); DD.classList.add("on");
+    const html = ddItems.map((x, i) => `<li data-i="${i}"><span>${x.html || esc(x.label)}</span>${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</li>`).join("");
+    const row = ddBelow && input.closest(".row");
+    if (row) {
+      // 品名の候補は、画面に重ねず入力欄のすぐ下に差し込む（キーボードやスクロールでずれない）
+      DD.classList.remove("on"); document.querySelectorAll("#rows .sg").forEach(u => { if (u.parentNode !== row) u.remove(); });
+      let ul = row.querySelector(".sg"); if (!ul) { ul = document.createElement("ul"); ul.className = "sg"; ul.setAttribute("role", "listbox"); row.querySelector(".r1").after(ul); }
+      ul.innerHTML = html; ddEl = ul; keepSg(input, ul); return;
+    }
+    document.querySelectorAll("#rows .sg").forEach(u => u.remove());
+    ddEl = DD; DD.innerHTML = html; ddPlace(input); DD.classList.add("on");
+  }
+  // 入力欄と候補が、キーボードの上の見えている範囲に収まるようにする
+  function keepSg(input, ul) {
+    const fit = () => {
+      if (!ul.isConnected) return;
+      const vv = window.visualViewport, top = vv ? vv.offsetTop : 0, bottom = top + (vv ? vv.height : innerHeight);
+      const fr = input.getBoundingClientRect(), ur = ul.getBoundingClientRect();
+      const over = ur.bottom - (bottom - 6); if (over > 0) window.scrollBy(0, Math.min(over, fr.top - top - 6));
+    };
+    fit(); requestAnimationFrame(fit); setTimeout(fit, 200);
   }
   function ddPlace(input) {
+    if (ddEl !== DD) return;
     const r = input.getBoundingClientRect(), vv = window.visualViewport, vh = vv ? vv.height + vv.offsetTop : innerHeight, w = Math.max(r.width, 200);
     DD.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px"; DD.style.width = w + "px";
     if (ddBelow) { const rw = input.closest(".row"); if (rw) { const q2 = rw.getBoundingClientRect(); DD.style.left = (q2.left + 6) + "px"; DD.style.width = (q2.width - 12) + "px"; } DD.style.bottom = "auto"; DD.style.top = (r.bottom + 4) + "px"; DD.style.maxHeight = Math.max(96, vh - r.bottom - 10) + "px"; return; }
     DD.style.maxHeight = "";
     if (vh - r.bottom < 170 && r.top > vh - r.bottom) { DD.style.top = "auto"; DD.style.bottom = (innerHeight - r.top + 4) + "px"; } else { DD.style.bottom = "auto"; DD.style.top = (r.bottom + 4) + "px"; }
   }
-  function ddHide() { DD.classList.remove("on"); ddFor = null; ddItems = []; ddAct = -1; }
-  function ddHi(i) { const n = ddItems.length; if (!n) return; ddAct = (i + n) % n; DD.querySelectorAll("li").forEach((li, k) => li.classList.toggle("act", k === ddAct)); const a = DD.children[ddAct]; if (a) a.scrollIntoView({ block: "nearest" }); }
+  function ddHide() { DD.classList.remove("on"); document.querySelectorAll("#rows .sg").forEach(u => u.remove()); ddEl = DD; ddFor = null; ddItems = []; ddAct = -1; }
+  const ddOpen = () => !!ddItems.length && (ddEl !== DD ? ddEl.isConnected : DD.classList.contains("on"));
+  function ddHi(i) { const n = ddItems.length; if (!n) return; ddAct = (i + n) % n; ddEl.querySelectorAll("li").forEach((li, k) => li.classList.toggle("act", k === ddAct)); const a = ddEl.children[ddAct]; if (a && ddEl === DD) a.scrollIntoView({ block: "nearest" }); }
   function ddPick(i) { const x = ddItems[i], inp = ddFor; if (!x) return; const pos = posOf(inp); ddHide(); x.pick(); moveFrom(pos); }
   DD.addEventListener("pointerdown", e => { const li = e.target.closest("li"); if (!li) return; e.preventDefault(); ddPick(Number(li.dataset.i)); });
+  // 差し込んだ候補：押した瞬間に選ぶ（スクロールのつもりで触ったときは選ばない）
+  let sgDown = null;
+  $("rows").addEventListener("pointerdown", e => { const li = e.target.closest(".sg li"); if (!li) return; e.preventDefault(); sgDown = { i: Number(li.dataset.i), y: e.clientY }; });
+  $("rows").addEventListener("pointerup", e => { const li = e.target.closest(".sg li"); if (li && sgDown && Math.abs(e.clientY - sgDown.y) < 10 && Number(li.dataset.i) === sgDown.i) ddPick(sgDown.i); sgDown = null; });
   window.addEventListener("scroll", () => { if (ddFor) ddPlace(ddFor); }, { passive: true });
   if (window.visualViewport) visualViewport.addEventListener("scroll", () => { if (ddFor) ddPlace(ddFor); });
   const rowEl = inp => inp.closest(".row"), rowOf = inp => F.rows[Number(rowEl(inp).dataset.i)];
@@ -1215,7 +1245,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   $("v-input").addEventListener("focusin", e => { kbState(); setTimeout(() => { kbState(); showField(e.target); }, 320); });
   $("v-input").addEventListener("focusout", () => setTimeout(kbState, 150));
   $("v-input").addEventListener("keydown", e => {
-    const tg = e.target, open = ddFor === tg && DD.classList.contains("on");
+    const tg = e.target, open = ddFor === tg && ddOpen();
     if (open && (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey))) { e.preventDefault(); return ddHi(ddAct + 1); }
     if (open && (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey))) { e.preventDefault(); return ddHi(ddAct - 1); }
     if (open && e.key === "Escape") return ddHide();
