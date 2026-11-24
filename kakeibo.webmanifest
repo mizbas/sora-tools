@@ -1,0 +1,17 @@
+{
+  "id": "./kakeibo.html",
+  "name": "わが家の家計簿",
+  "short_name": "家計簿",
+  "description": "家族のスマホで同じ家計簿。レシートのまま入力して、予算の残りがひと目でわかる。",
+  "start_url": "./kakeibo.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F2F4F7",
+  "theme_color": "#FFFFFF",
+  "lang": "ja",
+  "icons": [
+    { "src": "kakeibo-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "kakeibo-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "kakeibo-512m.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

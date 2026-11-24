@@ -1,14 +1,32 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-app="kakeibo">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FFFFFF">
-<title>わが家の家計簿 ｜そらのツール箱</title>
-<link rel="icon" href="icon-192.png">
+<title>わが家の家計簿</title>
+<link rel="icon" href="kakeibo-192.png">
+<link rel="apple-touch-icon" href="kakeibo-180.png">
+<meta name="apple-mobile-web-app-title" content="家計簿">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="app.css">
 <script src="app.js"></script>
 <style>
+/* アプリの上のバー（リンクではなくボタン） */
+header.appbar{display:flex;align-items:center;gap:8px;min-height:44px;padding-top:calc(env(safe-area-inset-top) + 6px);padding-bottom:6px}
+header.appbar b{flex:1;min-width:0;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.abb{flex:none;width:38px;height:38px;border-radius:50%;border:0;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+.abb:active{filter:brightness(.92)}
+.abb svg{width:20px;height:20px}
+.abb[hidden]{display:none}
+.absync{flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:999px;padding:5px 10px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.absync.ok::before,.absync.warn::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;background:var(--pos)}
+.absync.warn{color:#9A5B00;border-color:#F0D9A8;background:#FFF8E8}.absync.warn::before{background:#E0A100}
+.absync[hidden]{display:none}
+.backb{display:none !important}
+#v-memo>h1,#v-report>h1,#v-set>h1,#inTitle{display:none}
+.linkb{font:inherit;font-size:14px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:var(--r-sm);padding:10px 14px;cursor:pointer;width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.linkb::after{content:"›";color:var(--faint);font-size:18px}
 body{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
 .view{display:none}.view.on{display:block}
 h1{margin:16px 0 4px}
@@ -39,6 +57,19 @@ h1{margin:16px 0 4px}
 .rc .nm{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rc .amt{flex:none;width:auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .rc .amt.inc{color:var(--pos)}
+.rv{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;margin:12px 0}
+.rv .d{font-size:13px;color:var(--sub)}
+.rv .tt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:2px 0 10px}
+.rv .tt b{font-size:28px;font-variant-numeric:tabular-nums}
+.rv .shopb{font:inherit;font-size:16px;font-weight:700;border:1px solid var(--line);background:var(--fill);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+.rv .shopb::after{content:" ›";color:var(--faint)}
+.rv table{width:100%;border-collapse:collapse;font-size:14px}
+.rv td{padding:7px 0;border-top:1px solid var(--line);vertical-align:top}
+.rv td:last-child{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+.rv td small{display:block;color:var(--sub);font-size:12px;font-weight:400}
+.rv .meta{font-size:13px;color:var(--sub);margin-top:10px}
+.toast.undo{pointer-events:auto;display:flex;gap:12px;align-items:center}
+.toast.undo button{font:inherit;font-weight:700;color:#9CC3FF;background:none;border:0;padding:0;cursor:pointer}
 .rr{border:1px solid var(--line);border-radius:var(--r-md);background:#fff;margin:6px 0;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .rr:active{background:var(--primary-soft)}
 .rr:active .rc{background:transparent}
@@ -181,7 +212,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
 </head>
 <body>
 <div class="wrap">
-  <header class="no-print"><a href="./index.html">ツール一覧</a></header>
+  <header class="appbar no-print"><button type="button" class="abb" id="abBack" aria-label="戻る" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b id="abTitle">わが家の家計簿</b><button type="button" class="absync" id="abSync" hidden></button></header>
 
   <!-- ホーム -->
   <section class="view on" id="v-home">
@@ -199,6 +230,11 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     <h1 id="cdTitle" class="cdt"></h1>
     <div class="mnav"><button type="button" data-m="-1" aria-label="前の月">‹</button><b id="cdMonth"></b><button type="button" data-m="1" aria-label="次の月">›</button></div>
     <div id="cd"></div>
+  </section>
+
+  <section class="view" id="v-rcpt">
+    <button type="button" class="backb" id="rcBack">‹ 戻る</button>
+    <div id="rcBody"></div>
   </section>
 
   <section class="view" id="v-shop">
@@ -274,7 +310,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <details class="fold"><summary>自動で分けるルール</summary><p class="note" style="margin:4px 0">明細の内容にこの言葉が入っていたら、このカテゴリにします。取り込みのときにカテゴリを直すと自動で増えます。</p><div id="rules"></div>
         <div class="f2" style="margin-top:6px"><input type="text" id="rKw" class="in" placeholder="例：ENEOS"><select id="rCat" class="in"></select></div><button type="button" class="ghostb wide" id="rAdd">ルールを追加</button></details>
     </section>
-    <section class="card"><h2>カテゴリ</h2><div class="seg full" id="cType" style="margin-bottom:6px"><button type="button" data-t="expense" class="on">支出</button><button type="button" data-t="income">収入</button></div><div id="catList"></div>
+    <section class="card"><h2>カテゴリ</h2><div class="seg full" id="cType" style="margin-bottom:6px"><button type="button" data-t="expense" class="on">支出</button><button type="button" data-t="income">収入</button></div><p class="note" style="margin:0 0 4px">名前を書き換えると、過去の記録も変わります。ほかのカテゴリと同じ名前にすると、1つにまとまります。</p><div id="catList"></div>
       <div class="f2" style="margin-top:8px"><input type="text" id="cName" class="in" placeholder="新しいカテゴリ"><button type="button" class="ghostb" id="cAdd">追加</button></div></section>
     <section class="card"><h2>バックアップ</h2>
       <div class="sub2"><button type="button" class="ghostb" id="expBtn">データを書き出す</button><button type="button" class="ghostb" id="impBtn">書き出したデータを読み込む</button><button type="button" class="ghostb" id="csvOut">表計算用（CSV）で保存</button></div>
@@ -288,14 +324,17 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <details><summary>前に買ったものを早く入れたい</summary><div class="a">品名を入れ始めると、前に入れた品名が候補に出ます。選ぶと前回のカテゴリと値段が自動で入ります。お店の名前もよく行く順に候補に出ます。</div></details>
       <details><summary>家族で同じ家計簿を使うには</summary><div class="a">1人目が「設定・共有」で「共有ファイルを作る」→「家族を招待」に相手のGoogleアカウントのメールアドレスを入れます。2人目は自分のスマホでこの家計簿を開き、「家族が作ったファイルを選ぶ」から招待されたファイルを選びます。そのあとは入力するたびに自動で同期します。開いたときは、ホームの「タップして最新にする」を押すと家族が入れた分も反映されます（そこから約1時間は、入力するたびに自動で同期します）。</div></details>
       <details><summary>同じものを2人が同時に直したら？</summary><div class="a">記録ごとに、あとから保存したほうが残ります。別々の記録を同時に入れたときは、両方とも残ります。</div></details>
-      <details><summary>Googleドライブの中身を見られることはありますか？</summary><div class="a">この家計簿が使えるのは、この家計簿で作ったファイルと、あなたが選んだファイルだけです（drive.file という最小限の権限）。ほかのファイルを読んだり変更したりすることはできません。連携はGoogleアカウントの「サードパーティ製のアプリとサービス」からいつでも解除できます。くわしくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</div></details>
+      <details><summary>Googleドライブの中身を見られることはありますか？</summary><div class="a">この家計簿が使えるのは、この家計簿で作ったファイルと、あなたが選んだファイルだけです（drive.file という最小限の権限）。ほかのファイルを読んだり変更したりすることはできません。連携はGoogleアカウントの「サードパーティ製のアプリとサービス」からいつでも解除できます。<button type="button" class="linkb" data-open="privacy.html">プライバシーポリシーを見る</button></div></details>
       <details><summary>機種変更するときは</summary><div class="a">Googleドライブで同期していれば、新しいスマホで「家族が作ったファイルを選ぶ」（自分で作った場合も同じ）から同じファイルを選ぶだけです。同期していない場合は「データを書き出す」でできた文字を新しいスマホの「読み込む」に貼り付けます。</div></details>
       <details><summary>値引きや容量を入れたい</summary><div class="a">品目の下の「＋ 値引き・容量」を押すと、値引き額と容量（g・mL・個）を入れられます。容量は入れなくても大丈夫です。品名に「牛乳1L」「鶏むね600g」「卵10個入り」のように量が書いてあれば、自動で読み取って、底値帳で100mLあたり・100gあたりの値段を比べます。量がわからない品物は1点あたりの値段で比べます。</div></details>
       <details><summary>底値帳の使い方</summary><div class="a">「振り返り」→「底値」で品名を入れると、これまでに買った値段が安い順に並び、いちばん安かったお店と日付がわかります。品名に含まれる言葉で探すので、「牛乳」で「牛乳1L」や「低脂肪牛乳」もまとめて出ます。品名に量（1L、500mlなど）が入っていれば、サイズ違いも100mLあたりで比べます。漢字とひらがなはまとめられないので、品名の書き方はそろえておくと便利です。</div></details>
       <details><summary>途中まで入れたレシートをあとで続けたい</summary><div class="a">入力画面の右上の「一時保存」を押すと、入力中の内容をこの端末に5件まで取っておけます。「復元」から続きを入れられます。</div></details>
       <details><summary>家賃やサブスクを毎月入れるのが面倒</summary><div class="a">「設定・共有」の「固定費・サブスク（自動で記録）」に登録すると、請求日が来た分を、アプリを開いたときに自動で記録します。何日か開かなくても、次に開いたときにまとめて入ります（さかのぼるのは45日まで）。自動で入った記録には「自動」の印が付きます。金額が違った月は、その記録を開いて直せます。無料期間があるサブスクは「無料期間の終わり」を入れておくと、それまでは記録せず、終わりが近づくとホームでお知らせします。</div></details>
-      <details><summary>ホーム画面に置きたい</summary><div class="a">iPhoneはSafariの共有ボタンから「ホーム画面に追加」、AndroidはChromeのメニューから「ホーム画面に追加」で、アプリのように開けます。</div></details>
+      <details><summary>ホーム画面に置きたい</summary><div class="a">iPhoneはSafariの共有ボタンから「ホーム画面に追加」、AndroidはChromeのメニューから「ホーム画面に追加」（または「アプリをインストール」）で、家計簿だけのアプリとして開けます。</div></details>
     </section>
+    <section class="card no-print"><h2>そらのツール箱</h2><p class="note" style="margin:0">この家計簿を作った「そら」の、ほかのお金の計算ツールや、noteでのお知らせです。</p>
+      <button type="button" class="linkb" data-open="index.html">ほかのツールを見る</button>
+      <button type="button" class="linkb" data-open="https://note.com/tmsora8496">noteで更新情報を見る</button></section>
   </section>
 </div>
 
@@ -404,7 +443,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const months = []; rs.forEach(r => { const m = ymOf(r.date); let g = months[months.length - 1]; if (!g || g.ym !== m) { g = { ym: m, total: 0, receipts: [] }; months.push(g); } g.receipts.push(r); g.total += r.total; });
     const it = {}; tx.forEach(t => { if (!t.item) return; const k = normName(t.item), x = (it[k] = it[k] || { item: t.item, n: 0, total: 0 }); x.n += t.qty || 1; x.total += t.amount; });
     const total = rs.reduce((a, r) => a + r.total, 0);
-    return { shop: key, total, count: rs.length, avg: rs.length ? Math.round(total / rs.length) : 0, first: rs.length ? rs[rs.length - 1].date : "", months, items: Object.values(it).sort((a, b) => b.n - a.n || b.total - a.total) };
+    return { shop: key, rows: tx.length, total, count: rs.length, avg: rs.length ? Math.round(total / rs.length) : 0, first: rs.length ? rs[rs.length - 1].date : "", months, items: Object.values(it).sort((a, b) => b.n - a.n || b.total - a.total) };
   }
   function search(s, q, opt) {
     const o = opt || {}, words = String(q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -731,7 +770,17 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   const now = () => Date.now();
   const today = () => K.ymd(new Date());
   let ym = today().slice(0, 7), view = "home", rpTab = "trend", cType = "expense";
-  let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 2200); }
+  let tt; function toast(m) { const t = $("toast"); t.classList.remove("undo"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 2200); }
+  // 消したあと数秒だけ「元に戻す」を出す
+  function toastUndo(m, undo) {
+    const t = $("toast"); t.innerHTML = `<span>${esc(m)}</span><button type="button">元に戻す</button>`; t.classList.add("on", "undo"); clearTimeout(tt);
+    t.querySelector("button").onclick = () => { undo(); t.classList.remove("on", "undo"); toast("元に戻しました"); };
+    tt = setTimeout(() => t.classList.remove("on", "undo"), 6000);
+  }
+  function delReceipt(rid) {
+    const t = now(), ids = []; S.tx.forEach(x => { if (x.rid === rid && !x.del) { Object.assign(x, { del: true, updatedAt: t }); ids.push(x.id); } });
+    changed(); toastUndo("削除しました", () => { const u = now(); S.tx.forEach(x => { if (ids.includes(x.id)) { x.del = false; delete x.del; x.updatedAt = u; } }); changed(); });
+  }
   const cats = type => K.live(S.cats).filter(c => c.type === type).sort((a, b) => a.order - b.order);
   const color = (type, name) => (K.live(S.cats).find(c => c.type === type && c.name === name) || {}).color || "#7A8B99";
   // カテゴリの色つきチップ（ホームの「カテゴリ別の支出」と同じ色）
@@ -744,16 +793,27 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
 
   // ---- 画面切り替え ----
   // 画面の切り替え。ブラウザ・スマホの「戻る」で1つ前の画面（とスクロール位置）に戻れるよう履歴に積む
-  const navState = () => ({ v: view, ym, rp: typeof rpTab === "string" ? rpTab : "trend", cat: typeof detailCat === "string" ? detailCat : "", shop: typeof detailShop === "string" ? detailShop : "", y: Math.round(window.scrollY) });
+  const navState = () => ({ v: view, ym, rp: typeof rpTab === "string" ? rpTab : "trend", cat: typeof detailCat === "string" ? detailCat : "", shop: typeof detailShop === "string" ? detailShop : "", rid: typeof detailRid === "string" ? detailRid : "", y: Math.round(window.scrollY) });
   function show(v) {
     if (v !== "input" && F && F.rid) F = null;
     view = v;
     document.body.classList.remove("kb");
     document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === "v-" + v));
-    document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.v === (v === "cat" ? "home" : v === "shop" ? "report" : v)));
+    document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.v === (v === "cat" || v === "rcpt" ? "home" : v === "shop" ? "report" : v)));
     if (v === "input" && !F) newForm();
-    renderAll();
+    renderAll(); setBar();
   }
+  // 上のバー：画面の名前と戻るボタン
+  const BAR = { home: "わが家の家計簿", cat: "カテゴリの内訳", shop: "お店の記録", rcpt: "レシート", memo: "買い物メモ", report: "振り返り", set: "設定・共有" };
+  function setBar() {
+    const t = view === "input" ? $("inTitle").textContent : BAR[view] || "わが家の家計簿";
+    $("abTitle").textContent = t;
+    const bb = document.querySelector("#v-" + view + " .backb");
+    $("abBack").hidden = !(bb && bb.style.display !== "none");
+    if (typeof drawAbSync === "function") drawAbSync();
+  }
+  $("abBack").onclick = () => { const bb = document.querySelector("#v-" + view + " .backb"); if (bb) bb.click(); };
+  document.addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (!o) return; const u = o.dataset.open; if (/^https?:/.test(u)) window.open(u, "_blank", "noopener"); else location.href = u; });
   function go(v, opt) {
     const o = opt || {};
     try { history.replaceState(navState(), ""); const ns = Object.assign(navState(), { v, y: 0 }); if (!o.replace) history.pushState(ns, ""); else history.replaceState(ns, ""); } catch (e) {}
@@ -768,6 +828,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     if (st.ym) ym = st.ym;
     if (st.cat) detailCat = st.cat;
     if (st.shop) detailShop = st.shop;
+    if (st.rid) detailRid = st.rid;
     if (st.rp && typeof rpTab === "string") { rpTab = st.rp; $("rpTab").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.r === rpTab)); }
     if (st.v === "input" && F && !F.rid && st.edit) F = null;
     show(st.v || "home"); requestAnimationFrame(() => window.scrollTo(0, st.y || 0));
@@ -777,7 +838,24 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   // ---- ホーム ----
   document.querySelectorAll(".mnav button").forEach(b => b.onclick = () => { ym = K.addYm(ym, Number(b.dataset.m)); renderHome(); });
   // まだドライブに保存していない変更があるときのお知らせ
+  // 上のバーの右：同期の状態（押すと最新にする）
+  function drawAbSync() {
+    const b = $("abSync"); if (!b) return;
+    let st = "", txt = "";
+    try {
+      if (!DEMO && typeof D === "object" && D.fileId) {
+        const valid = token && now() < tokenExp - 60000;
+        if (busy) { st = ""; txt = "同期中…"; }
+        else if (D.err || D.dirty) { st = "warn"; txt = "未保存"; }
+        else if (valid && D.last) { const m = Math.floor((now() - D.last) / 60000); st = "ok"; txt = m < 1 ? "最新" : m < 60 ? `最新・${m}分前` : "最新にする"; if (m >= 60) st = "warn"; }
+        else { st = "warn"; txt = "最新にする"; }
+      }
+    } catch (e) {}
+    b.hidden = !txt; b.textContent = txt; b.className = "absync" + (st ? " " + st : "");
+    b.onclick = () => { if (busy) return; busy = false; syncNow(); };
+  }
   function drawSyncBar() {
+    drawAbSync();
     const el = $("syncBar"); if (!el) return;
     let st = ""; try { if (!DEMO && typeof D === "object" && D.fileId) st = D.err ? "err" : D.dirty ? "dirty" : (!token || now() > tokenExp - 60000) ? "stale" : ""; } catch (e) {}
     if (!st || (st === "stale" && busy)) { el.innerHTML = ""; return; }
@@ -814,7 +892,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return `<button type="button" class="rc" data-rid="${esc(r.rid)}" style="border-left:4px solid ${acc}"><div class="top"><span class="nm">${esc(title)}</span><span class="amt${r.type === "income" ? " inc" : ""}">${r.type === "income" ? "+" : ""}${yen(r.total)}</span></div>
       <div class="ds">${r.rows.some(t => t.auto) ? `<span class="chip auto">自動</span>` : ""}${cs.map(c => catChip(r.type, c)).join("")}${esc(desc)}${r.by && r.by !== "自動" ? `<span style="float:right">${esc(r.by)}</span>` : ""}</div></button>`;
   }
-  document.addEventListener("click", e => { const sh = e.target.closest("[data-shop]"); if (sh) return openShop(sh.dataset.shop); const b = e.target.closest(".rr[data-rid], .rc[data-rid]"); if (b) return editReceipt(b.dataset.rid); const c = e.target.closest(".cbar[data-cat]"); if (c) openCat(c.dataset.cat); });
+  document.addEventListener("click", e => { const sh = e.target.closest("[data-shop]"); if (sh) return openShop(sh.dataset.shop); const r = e.target.closest(".rr[data-rid]"); if (r) return editReceipt(r.dataset.rid); const b = e.target.closest(".rc[data-rid]"); if (b) return openReceipt(b.dataset.rid); const c = e.target.closest(".cbar[data-cat]"); if (c) openCat(c.dataset.cat); });
   $("cats").addEventListener("keydown", e => { const c = e.target.closest(".cbar[data-cat]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openCat(c.dataset.cat); } });
 
   // ---- カテゴリの内訳 ----
@@ -840,6 +918,25 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   }
   document.querySelectorAll("#v-cat .mnav button").forEach(b => b.onclick = () => { ym = K.addYm(ym, Number(b.dataset.m)); try { history.replaceState(navState(), ""); } catch (e) {} renderCat(); });
 
+  // ---- レシートを見る（直すのはボタンから）----
+  let detailRid = "";
+  function openReceipt(rid) { detailRid = rid; go("rcpt"); }
+  $("rcBack").onclick = () => back("home");
+  function renderRcpt() {
+    const tx = K.live(S.tx).filter(t => t.rid === detailRid);
+    if (!tx.length) { $("rcBody").innerHTML = `<p class="empty">このレシートは削除されています。</p>`; return; }
+    const r = tx[0], inc = r.type === "income", total = tx.reduce((a, t) => a + t.amount, 0), shop = (tx.find(t => t.shop) || {}).shop || "", memo = (tx.find(t => t.memo) || {}).memo || "";
+    $("rcBody").innerHTML = `<div class="rv"><div class="d">${r.date.slice(0, 4)}年${md(r.date)}</div>
+      <div class="tt">${shop && !inc ? `<button type="button" class="shopb" data-shop="${esc(shop)}">${esc(shop)}</button>` : `<span style="font-weight:700;font-size:16px">${esc(shop || (inc ? "収入" : "お店なし"))}</span>`}<b${inc ? ' style="color:var(--pos)"' : ""}>${inc ? "+" : ""}${yen(total)}</b></div>
+      <table>${tx.map(t => `<tr><td>${esc(t.item || t.cat)}${t.qty > 1 ? ` ×${t.qty}` : ""}<small>${catChip(t.type, t.cat)}${t.disc ? `値引き${yen(t.disc)}` : ""}${t.uval ? `　${t.uval}${esc(t.utype)}` : ""}</small></td><td>${yen(t.amount)}</td></tr>`).join("")}</table>
+      ${memo || r.by ? `<div class="meta">${memo ? "メモ：" + esc(memo) : ""}${memo && r.by ? "<br>" : ""}${r.by ? esc(r.by) + "が入力" : ""}</div>` : ""}</div>
+      <button type="button" class="primary wide" id="rcEdit">${inc ? "この記録を直す" : "このレシートを直す"}</button>
+      ${shop && !inc ? `<button type="button" class="ghostb wide" style="margin-top:8px" data-shop="${esc(shop)}">${esc(shop)}のレシートを見る</button>` : ""}
+      <button type="button" class="ghostb neg wide" style="margin-top:8px" id="rcDel">削除する</button>`;
+    $("rcEdit").onclick = () => editReceipt(detailRid);
+    $("rcDel").onclick = () => { if (!confirm("このレシートの記録を削除しますか？")) return; delReceipt(detailRid); back("home"); };
+  }
+
   // ---- お店の詳細（日付ごとのレシート）----
   let detailShop = "", shopMonths = 6;
   function openShop(shop) { detailShop = shop; shopMonths = 6; go("shop"); }
@@ -859,8 +956,18 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
         return `<div class="rr" role="button" tabindex="0" data-rid="${esc(r.rid)}" aria-label="${esc(r.date)}のレシートを直す" style="border-left:4px solid ${color("expense", main.cat)}"><div class="rc"><div class="top"><span class="nm">${r.date.slice(5, 7).replace(/^0/, "")}月${Number(r.date.slice(8))}日（${"日月火水木金土"[new Date(r.date + "T00:00:00").getDay()]}）</span><span class="amt">${yen(r.total)}</span></div>${r.by ? `<div class="ds">${esc(r.by)}が入力</div>` : ""}</div>
           <ul>${r.rows.map(t => `<li><span>${esc(t.item || t.cat)}${t.qty > 1 ? ` <small>×${t.qty}</small>` : ""}${t.disc ? ` <small>値引き${yen(t.disc)}</small>` : ""}</span><span>${yen(t.amount)}</span></li>`).join("")}</ul></div>`;
       }).join("")).join("")}
-      ${d.months.length > shopMonths ? `<button type="button" class="ghostb wide" id="spMore">もっと前を見る（あと${d.months.length - shopMonths}か月）</button>` : ""}</section>`;
+      ${d.months.length > shopMonths ? `<button type="button" class="ghostb wide" id="spMore">もっと前を見る（あと${d.months.length - shopMonths}か月）</button>` : ""}</section>
+      <section class="card"><h2>名前を変える・まとめる</h2><p class="note" style="margin-top:0">「イオン」と「イオン 西大和店」のように同じお店が分かれているときは、ほかのお店の名前を選ぶと1つにまとまります。このお店の記録${d.rows}件の名前が変わります。</p>
+        <div style="display:flex;gap:8px"><input type="text" class="in" id="spName" value="${esc(detailShop)}" list="dlShopAll" autocomplete="off" style="flex:1"><button type="button" class="ghostb" id="spRename" style="flex:none">変える</button></div>
+        <datalist id="dlShopAll">${K.shops(S, "0000-01-01", "9999-12-31").filter(x => x.shop !== detailShop).map(x => `<option value="${esc(x.shop)}">`).join("")}</datalist></section>`;
     const mb = $("spMore"); if (mb) mb.onclick = () => { shopMonths += 6; renderShop(); };
+    $("spRename").onclick = () => {
+      const nn = $("spName").value.trim(), old = detailShop; if (!nn || nn === old) return;
+      const exists = K.live(S.tx).some(t => String(t.shop || "").trim() === nn);
+      if (!confirm(exists ? `「${old}」を「${nn}」にまとめますか？\n「${old}」の記録はすべて「${nn}」になります。` : `お店の名前を「${nn}」に変えますか？`)) return;
+      const t = now(); let n = 0; S.tx.forEach(x => { if (!x.del && String(x.shop || "").trim() === old) { Object.assign(x, { shop: nn, updatedAt: t }); n++; } });
+      detailShop = nn; try { history.replaceState(navState(), ""); } catch (e) {} changed(); toast(exists ? `${n}件を「${nn}」にまとめました` : "名前を変えました");
+    };
   }
 
   // ---- 入力 ----
@@ -888,7 +995,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     $("inShop").placeholder = F.type === "income" ? "例：会社" : "例：スーパー";
     $("inDate").value = F.date; $("inShop").value = F.shop; $("inMemo").value = F.memo;
     $("saveBtn").textContent = F.rid ? "保存する" : "登録する";
-    $("editOps").style.display = F.rid ? "" : "none"; $("inBack").style.display = F.rid ? "" : "none";
+    $("editOps").style.display = F.rid ? "" : "none"; $("inBack").style.display = F.rid ? "" : "none"; if (view === "input") setBar();
     $("inTools").style.display = F.rid ? "none" : ""; $("draftOpen").textContent = "復元" + (drafts().length ? "（" + drafts().length + "）" : "");
     $("modeBtn").textContent = P.mode !== "h" ? "入れ方：品名をまとめて" : "入れ方：1品ずつ";
     SG = K.suggest(S);
@@ -1075,7 +1182,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   };
   $("cancelEdit").onclick = () => { F = null; back("home"); };
   $("inBack").onclick = () => { F = null; back("home"); };
-  $("delRc").onclick = () => { if (!confirm("このレシートの記録を削除しますか？")) return; const t = now(); S.tx.forEach(x => { if (x.rid === F.rid && !x.del) Object.assign(x, { del: true, updatedAt: t }); }); F = null; changed(); toast("削除しました"); back("home"); };
+  $("delRc").onclick = () => { if (!confirm("このレシートの記録を削除しますか？")) return; const rid = F.rid; F = null; delReceipt(rid); go("home", { replace: true }); };
 
   // ---- 一時保存（この端末だけ）----
   const DRK = "sora.kakeibo.drafts";
@@ -1226,7 +1333,11 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const li = e.target.closest(".li"), c = S.cats.find(x => x.id === li.dataset.c), t = now(); if (!c) return;
     if (e.target.type === "color") { Object.assign(c, { color: e.target.value, updatedAt: t }); }
     else if (e.target.classList.contains("ctax")) { Object.assign(c, { tax: e.target.value, updatedAt: t }); toast(e.target.value ? `「${c.name}」は税抜入力のとき${e.target.value === "0" ? "非課税" : e.target.value + "%"}になります` : "税率は入力画面の設定に合わせます"); }
-    else { const nn = e.target.value.trim(); if (!nn || nn === c.name) { e.target.value = c.name; return; } if (cats(c.type).some(x => x.name === nn)) { toast("同じ名前のカテゴリがあります"); e.target.value = c.name; return; }
+    else { const nn = e.target.value.trim(); if (!nn || nn === c.name) { e.target.value = c.name; return; } const same = cats(c.type).find(x => x.name === nn && x.id !== c.id);
+      if (same) { if (!confirm(`「${c.name}」を「${nn}」にまとめますか？\n「${c.name}」の記録はすべて「${nn}」になり、「${c.name}」は一覧から消えます。`)) { e.target.value = c.name; return; }
+        let n = 0; S.tx.forEach(x => { if (!x.del && x.type === c.type && x.cat === c.name) { Object.assign(x, { cat: nn, updatedAt: t }); n++; } });
+        S.rules.forEach(x => { if (!x.del && x.cat === c.name) Object.assign(x, { cat: nn, updatedAt: t }); });
+        Object.assign(c, { del: true, updatedAt: t }); toast(`${n}件を「${nn}」にまとめました`); changed(); return; }
       S.tx.forEach(x => { if (!x.del && x.type === c.type && x.cat === c.name) Object.assign(x, { cat: nn, updatedAt: t }); });
       S.rules.forEach(x => { if (!x.del && x.cat === c.name) Object.assign(x, { cat: nn, updatedAt: t }); });
       if (c.type === "expense") { const b = S.budgets.find(x => x.id === "b_" + c.name && !x.del); if (b) { Object.assign(b, { del: true, updatedAt: t }); S.budgets.push({ id: "b_" + nn, cat: nn, amount: b.amount, updatedAt: t }); } }
@@ -1367,6 +1478,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     else if (view === "memo") renderMemo();
     else if (view === "cat") renderCat();
     else if (view === "shop") renderShop();
+    else if (view === "rcpt") renderRcpt();
     else if (view === "set") { renderSet(); renderFixed(); drawDrive(); }
   }
   newForm(); F = null;
@@ -1375,9 +1487,9 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   if (DEMO) {
     document.title = "わが家の家計簿 お試し版（無料）｜そらのツール箱";
     const ban = document.createElement("div"); ban.className = "demo";
-    ban.innerHTML = `<b>お試し版</b>：見本のデータで、入力も集計も実際に試せます。入力した内容は、このページを閉じると消えます。<a href="${BUY}" target="_blank" rel="noopener">製品版（1,000円・家族で使えます）</a>`;
+    ban.innerHTML = `<b>お試し版</b>：見本のデータで、入力も集計も実際に試せます。入力した内容は、このページを閉じると消えます。<button type="button" class="linkb" data-open="${BUY}">製品版について見る（1,000円・家族で使えます）</button>`;
     document.querySelector(".wrap header").after(ban);
-    const off = (id, what) => { const sec = $(id) && $(id).closest("section.card"); if (!sec) return; [...sec.children].forEach(c => { if (c.tagName !== "H2") c.remove(); }); sec.insertAdjacentHTML("beforeend", `<p class="note" style="margin:0">${what}は製品版で使えます。</p><a class="ghostb wide" style="display:block;text-align:center;text-decoration:none" href="${BUY}" target="_blank" rel="noopener">製品版について見る</a>`); };
+    const off = (id, what) => { const sec = $(id) && $(id).closest("section.card"); if (!sec) return; [...sec.children].forEach(c => { if (c.tagName !== "H2") c.remove(); }); sec.insertAdjacentHTML("beforeend", `<p class="note" style="margin:0">${what}は製品版で使えます。</p><button type="button" class="linkb" data-open="${BUY}">製品版について見る</button>`); };
     off("drive", "Googleドライブで家族と同期する機能"); off("expBtn", "書き出し・読み込み");
     const cs = $("csvFile").closest("section.card"); [$("csvFile"), $("csvText").closest("details"), $("csvPrev"), cs.querySelector("p.note")].forEach(x => x && x.remove());
     cs.querySelector("h2").insertAdjacentHTML("afterend", `<p class="note" style="margin:0 0 6px">銀行・カードの明細（CSV）の取り込みは製品版で使えます。下の「自動で分けるルール」は試せます。</p>`);

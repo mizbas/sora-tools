@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<title>わが家の家計簿</title>
+<link rel="icon" href="kakeibo-192.png">
+<link rel="manifest" href="kakeibo.webmanifest">
+<link rel="apple-touch-icon" href="kakeibo-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="家計簿">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{--ink:#1B2430;--sub:#5D6878;--line:#DDE2EA;--primary:#1F5FBF;--navy:#16294A}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#F2F4F7;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:15px;line-height:1.6}
+.load{min-height:100vh;display:grid;place-items:center;color:var(--sub);font-size:14px}
+.gate{max-width:420px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 48px) 20px 40px}
+.gate img{width:72px;height:72px;border-radius:18px;display:block}
+.gate h1{font-size:24px;margin:18px 0 6px}
+.gate p{color:var(--sub);margin:0 0 20px;font-size:14px}
+.gate label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}
+.gate input{width:100%;font:inherit;font-size:18px;letter-spacing:.06em;text-transform:uppercase;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.gate .go{width:100%;margin-top:10px;font:inherit;font-weight:700;font-size:16px;border:0;border-radius:10px;padding:13px;background:var(--primary);color:#fff;cursor:pointer}
+.gate .hint{min-height:22px;font-size:13px;margin-top:8px;color:var(--sub)}
+.gate .hint.ng{color:#C0392B}
+.gate .sub{display:grid;gap:8px;margin-top:28px}
+.gate .sub button{font:inherit;font-size:14px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;justify-content:space-between}
+.gate .sub button::after{content:"›";color:#9AA4B2;font-size:18px;line-height:1}
+</style>
+</head>
+<body>
+<div class="load" id="load">読み込んでいます…</div>
+<script src="crypto.js?v=mwu36b0m"></script>
+<script>
+(async function () {
+  const ID = "kakeibo", SITE = {"salt":"b8j/k89hxRTcldfUHYJOqA==","iter":200000};
+  const file = () => fetch("tools/" + ID + ".json?v=mwu36b0m").then(r => r.json());
+  async function open(f) {
+    const html = await SoraLock.decryptTool(ID, f || await file());
+    document.open(); document.write(html); document.close();
+  }
+  if (SoraLock.hasKey(ID)) { try { await open(); return; } catch (e) {} }
+  // 購入コードを入れる画面（この家計簿だけ）
+  document.body.innerHTML = `<main class="gate">
+    <img src="kakeibo-192.png" alt="">
+    <h1>わが家の家計簿</h1>
+    <p>noteの記事に書いてある購入コードを入れると開きます。一度開けば、この端末では次からコードなしで開けます。</p>
+    <form id="f" autocomplete="off"><label for="code">購入コード</label><input id="code" inputmode="latin" autocapitalize="characters" spellcheck="false" placeholder="KAKE-XXXX-XXXX"><button class="go" type="submit">開く</button><div class="hint" id="hint"></div></form>
+    <div class="sub"><button type="button" data-go="kakeibo-demo.html">お試し版を使ってみる</button><button type="button" data-go="https://note.com/tmsora8496/n/n76c5e7c5bfd1">購入について（note）</button></div>
+  </main>`;
+  document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const u = b.dataset.go; if (/^https/.test(u)) window.open(u, "_blank", "noopener"); else location.href = u; });
+  const hint = document.getElementById("hint");
+  document.getElementById("f").onsubmit = async e => {
+    e.preventDefault();
+    const code = document.getElementById("code").value;
+    if (SoraLock.normalize(code).length < 6) { hint.textContent = "コードをもう一度確認してください。"; hint.className = "hint ng"; return; }
+    hint.textContent = "確認しています…"; hint.className = "hint";
+    try {
+      const f = await file();
+      const ok = await SoraLock.unlockWithCode(code, SITE, { [ID]: f });
+      if (ok.length) { hint.textContent = "開きました"; await open(f); }
+      else { hint.textContent = "このコードでは開けませんでした。記事内のコードを確認してください。"; hint.className = "hint ng"; }
+    } catch (err) { hint.textContent = "読み込みに失敗しました。通信状況を確認してください。"; hint.className = "hint ng"; }
+  };
+})();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
