@@ -352,7 +352,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <details><summary>レシートの入力のしかた</summary><div class="a">「入力」でお店と日付を選び、品目ごとに品名・カテゴリ・金額を入れます。1回の買い物でカテゴリが分かれるとき（食費と日用品など）も1枚のレシートにまとめて登録できます。合計だけでよければ、品目は1行で大丈夫です。</div></details>
       <details><summary>税抜の値段で入れたい</summary><div class="a">「税抜 8%」「税抜 10%」を選ぶと、レシートと同じく税率ごとに合計してから消費税（1円未満切り捨て）を足します。食費は自動で8%になります。ほかのカテゴリも「設定・共有」のカテゴリで税率を決めておくと、カテゴリを選んだときに自動で切り替わります。行ごとに変えることもできます。</div></details>
       <details><summary>キーボードで速く入れたい</summary><div class="a">はじめは「品名をまとめて」入れる順になっています。品名を入れてEnter（キーボードの「次へ」）を押すと次の行の品名へ進み、品名が空のままEnterを押すと1行目の金額へ移ります。金額も同じように下へ進み、最後の金額でEnterを押すとキーボードが閉じて合計が見えます。入力画面の右上の「入れ方」を「1品ずつ」にすると、カテゴリ→品名→個数→金額の順に1行ずつ進みます。候補が出ているときは、↓↑キー（パソコンはTabでも）で選んでEnterで決まります。</div></details>
-      <details><summary>前に買ったものを早く入れたい</summary><div class="a">品名を入れ始めると、前に入れた品名が候補に出ます。選ぶと前回のカテゴリと値段が自動で入ります。お店の名前もよく行く順に候補に出ます。</div></details>
+      <details><summary>前に買ったものを早く入れたい</summary><div class="a">品名を入れ始めると、前に入れた品名が候補に出ます。選ぶと前回のカテゴリが自動で入ります（値段はその日の値段を入れてください。候補の横に前回の値段が出ます）。お店の名前もよく行く順に候補に出ます。</div></details>
       <details><summary>家族で同じ家計簿を使うには</summary><div class="a">1人目が「設定・共有」で「共有ファイルを作る」→「家族を招待」に相手のGoogleアカウントのメールアドレスを入れます。2人目は自分のスマホでこの家計簿を開き、「家族が作ったファイルを選ぶ」から招待されたファイルを選びます。そのあとは入力するたびに自動で同期します。開いたときは、ホームの「タップして最新にする」を押すと家族が入れた分も反映されます（そこから約1時間は、入力するたびに自動で同期します）。</div></details>
       <details><summary>同じものを2人が同時に直したら？</summary><div class="a">記録ごとに、あとから保存したほうが残ります。別々の記録を同時に入れたときは、両方とも残ります。</div></details>
       <details><summary>Googleドライブの中身を見られることはありますか？</summary><div class="a">この家計簿が使えるのは、この家計簿で作ったファイルと、あなたが選んだファイルだけです（drive.file という最小限の権限）。ほかのファイルを読んだり変更したりすることはできません。連携はGoogleアカウントの「サードパーティ製のアプリとサービス」からいつでも解除できます。<button type="button" class="linkb" data-open="privacy.html">プライバシーポリシーを見る</button></div></details>
@@ -1096,7 +1096,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   const rowEl = inp => inp.closest(".row"), rowOf = inp => F.rows[Number(rowEl(inp).dataset.i)];
   function posOf(inp) { if (!inp) return null; if (inp.id === "inShop") return { i: -1, c: "shop" }; const el = rowEl(inp); return el ? { i: Number(el.dataset.i), c: inp.className.split(" ")[0] } : null; }
   const q = (i, c) => $("rows").querySelector(`.row[data-i="${i}"] .${c}`);
-  function focusEl(el) { if (!el) return; el.focus(); if (el.select && el.tagName === "INPUT") el.select(); setTimeout(() => showField(el), 60); }
+  function focusEl(el) { if (!el) return; try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); } if (el.select && el.tagName === "INPUT") el.select(); showField(el); }
   function nextRow(i, c) {
     if (i + 1 < F.rows.length) return focusEl(q(i + 1, c));
     readRows(); const last = F.rows[i]; F.rows.push(Object.assign(blankRow(), { cat: last.cat, rate: last.rate })); drawForm(); focusEl(q(i + 1, c));
@@ -1108,8 +1108,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   function applyHit(i, hit) {
     readRows(); const r = F.rows[i]; r.item = hit.item; q(i, "it").value = hit.item;
     if (!r.catTouched) setCat(i, hit.cat), r.catTouched = false;
-    if (!K.num(r.amount)) { r.amount = String(hit.unit); q(i, "am").value = fmtAmt(hit.unit); }
-    if (hit.uval && !r.uval && F.type !== "income") { Object.assign(r, { uval: hit.uval, utype: hit.utype || "g", more: true }); drawForm(); }
+    // 値段と容量は自動で入れない（その日の値段を自分で入れる）。カテゴリだけ前回に合わせる
     calcTotal();
   }
   function moveFrom(pos) {
@@ -1124,7 +1123,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       return done();
     }
     if (pos.c === "am" && v && (i + 1 >= F.rows.length || empty(i + 1))) return done();
-    if (pos.c === "it") { const it = q(i, "it"), hit = it && SG.items.find(x => x.type === F.type && x.item === it.value.trim()); if (hit && !K.num(F.rows[i].amount)) applyHit(i, hit); return v ? nextRow(i, "it") : focusEl(q(i, inc ? "am" : "qty")); }
+    if (pos.c === "it") { const it = q(i, "it"), hit = it && SG.items.find(x => x.type === F.type && x.item === it.value.trim()); if (hit && !F.rows[i].catTouched) applyHit(i, hit); return v ? nextRow(i, "it") : focusEl(q(i, inc ? "am" : "qty")); }
     if (pos.c === "qty") return focusEl(q(i, "am"));
     if (pos.c === "am") return v ? nextRow(i, "am") : nextRow(i, "ct");
     if (pos.c === "dc") return focusEl(q(i, "uv"));
@@ -1172,12 +1171,25 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   const touch = window.matchMedia && matchMedia("(pointer:coarse)").matches;
   const typing = () => { const a = document.activeElement; return !!(a && a.closest && a.closest("#v-input") && a.matches("input[type=text],input:not([type]),textarea")); };
   function kbState() { const vvOpen = window.visualViewport && window.innerHeight - visualViewport.height > 150; document.body.classList.toggle("kb", view === "input" && (vvOpen || (touch && typing()))); }
+  // 入力中の欄を、キーボードに隠れない位置（見えている画面の上のほう）に出す
   function showField(el) {
     if (!el || !el.getBoundingClientRect) return;
-    const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0), h = vv ? vv.height : innerHeight, r = el.getBoundingClientRect();
-    const want = top + h * 0.22; if (r.top < top + 8 || r.bottom > top + h - 60 || Math.abs(r.top - want) > h * 0.35) window.scrollBy({ top: r.top - want, behavior: "smooth" });
+    const fix = () => {
+      if (document.activeElement !== el) return;
+      const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0), h = vv ? vv.height : innerHeight, r = el.getBoundingClientRect();
+      const want = top + Math.min(h * 0.25, 140); if (r.top < top + 8 || r.bottom > top + h - 24 || r.top - want > h * 0.3) window.scrollBy(0, r.top - want);
+    };
+    fix(); setTimeout(fix, 120); setTimeout(fix, 380);
   }
-  if (window.visualViewport) visualViewport.addEventListener("resize", () => { kbState(); if (typing()) showField(document.activeElement); });
+  if (window.visualViewport) visualViewport.addEventListener("resize", () => { kbState(); if (typing()) showField(document.activeElement); else settle(); });
+  // iPhoneでキーボードを閉じたあと、下のバーが浮いたままになるのを直す（画面を1px動かして位置を計算し直させる）
+  function settle() {
+    clearTimeout(settle.t); settle.t = setTimeout(() => {
+      const a = document.activeElement; if (a && a.matches && a.matches("input,textarea,select")) return;
+      const y = window.scrollY; window.scrollTo(window.scrollX, y + 1); window.scrollTo(window.scrollX, y);
+    }, 250);
+  }
+  document.addEventListener("focusout", () => setTimeout(settle, 100));
   $("v-input").addEventListener("focusin", e => { kbState(); setTimeout(() => { kbState(); showField(e.target); }, 320); });
   $("v-input").addEventListener("focusout", () => setTimeout(kbState, 150));
   $("v-input").addEventListener("keydown", e => {
