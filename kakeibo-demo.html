@@ -427,7 +427,7 @@ label.rc.bk.on{background:var(--primary-soft);border-color:#B9C7DD}
   </section>
 </div>
 
-<nav class="tabbar no-print" aria-label="家計簿のメニュー"><div class="kbd"><kbd>N</kbd> 新しく入力<br><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 登録<br><kbd>Esc</kbd> 戻る</div><div>
+<nav class="tabbar no-print" aria-label="家計簿のメニュー"><div class="kbd"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 登録</div><div>
   <button type="button" data-v="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 10.5L12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/></svg>ホーム</button>
   <button type="button" data-v="input" class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>入力</button>
   <button type="button" data-v="memo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M8.5 10l1.5 1.5 3-3M8.5 16h7"/></svg>メモ</button>
@@ -1202,7 +1202,8 @@ label.rc.bk.on{background:var(--primary-soft);border-color:#B9C7DD}
     F.rows.push(blankRow());
     drawForm();
   }
-  const blankRow = () => ({ id: null, disc: "", uval: "", utype: "", more: false, item: "", cat: F.type === "income" ? (cats("income")[0] || {}).name || "給与" : "", amount: "", qty: 1, rate: "", catTouched: false });
+  // 新しい行：1行目のカテゴリは空（収入は先頭のカテゴリ）。2行目からは1つ前の行のカテゴリを引き継ぐ（品名の候補を選ぶと、その品名の前回のカテゴリに変わる）
+  const blankRow = prev => ({ id: null, disc: "", uval: "", utype: "", more: false, item: "", cat: (prev && prev.cat) || (F.type === "income" ? (cats("income")[0] || {}).name || "給与" : ""), amount: "", qty: 1, rate: "", catTouched: false });
   function editReceipt(rid) {
     const tx = K.live(S.tx).filter(t => t.rid === rid); if (!tx.length) return;
     F = { rid, type: tx[0].type, date: tx[0].date, shop: tx[0].shop || "", tax: "incl", memo: tx.find(t => t.memo) ? tx.find(t => t.memo).memo : "", rows: tx.map(t => ({ id: t.id, item: t.item, yomi: t.yomi || "", cat: t.cat, amount: Math.round((t.amount + (t.disc || 0)) / (t.qty || 1)), qty: t.qty || 1, rate: "", disc: t.disc || "", uval: t.uval || "", utype: t.utype || "", more: !!(t.disc || t.uval), catTouched: true })) };
@@ -1335,7 +1336,7 @@ label.rc.bk.on{background:var(--primary-soft);border-color:#B9C7DD}
   function focusEl(el) { if (!el) return; try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); } if (el.select && el.tagName === "INPUT") el.select(); showField(el); }
   function nextRow(i, c) {
     if (i + 1 < F.rows.length) return focusEl(q(i + 1, c));
-    readRows(); const last = F.rows[i]; appendRow(blankRow()); focusEl(q(i + 1, c));
+    readRows(); const last = F.rows[i]; appendRow(blankRow(last)); focusEl(q(i + 1, c));
   }
   function setCat(i, name) {
     const r = F.rows[i]; r.cat = name; r.catTouched = true; const ct = q(i, "ct"); if (ct) { if (![...ct.options].some(o => o.value === name)) ct.add(new Option(name, name), 0); ct.value = name; ct.classList.remove("empty"); }
@@ -1481,7 +1482,7 @@ label.rc.bk.on{background:var(--primary-soft);border-color:#B9C7DD}
   $("rows").addEventListener("change", e => { if (e.target.classList.contains("ct")) { const i = Number(rowEl(e.target).dataset.i), n = e.target.value.trim(); if (n) setCat(i, n); } calcTotal(); });
   $("rows").addEventListener("click", e => { if (e.target.classList.contains("more")) { readRows(); const r = rowOf(e.target), i = Number(rowEl(e.target).dataset.i); r.more = !r.more; redrawRow(i); if (r.more) focusEl(q(i, "dc")); return; }
     if (e.target.classList.contains("x")) { readRows(); removeRow(Number(rowEl(e.target).dataset.i)); } });
-  $("addRow").onclick = () => { readRows(); const last = F.rows[F.rows.length - 1]; appendRow(blankRow()); focusEl(q(F.rows.length - 1, "it")); };
+  $("addRow").onclick = () => { readRows(); const last = F.rows[F.rows.length - 1]; appendRow(blankRow(last)); focusEl(q(F.rows.length - 1, "it")); };
   $("modeBtn").onclick = () => { P.mode = P.mode !== "h" ? "h" : "v"; psave(); drawForm(); toast(P.mode !== "h" ? "品名をまとめて入れてから、金額をまとめて入れる順にしました" : "1品ずつ「カテゴリ→品名→個数→金額」の順にしました"); };
   $("inType").onclick = e => { const b = e.target.closest("button"); if (!b || b.dataset.t === F.type) return; readRows(); const keep = { date: F.date, shop: F.shop }; F.type = b.dataset.t; F.rows = [blankRow()]; Object.assign(F, keep); drawForm(); };
   $("inTax").onclick = e => { const b = e.target.closest("button"); if (!b) return; readRows(); F.tax = b.dataset.x; F.taxTouched = true; F.rows.forEach(r => { r.rate = ""; }); P.tax = F.tax; psave(); setTaxUI(); };
