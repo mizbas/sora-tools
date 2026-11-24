@@ -24,6 +24,9 @@ header.appbar b{flex:1;min-width:0;font-size:17px;overflow:hidden;text-overflow:
 .absync.warn{color:#9A5B00;border-color:#F0D9A8;background:#FFF8E8}.absync.warn::before{background:#E0A100}
 .absync[hidden]{display:none}
 .backb{display:none !important}
+/* Googleのファイル選択画面は、いつも画面の上に出す */
+.picker-dialog-bg{position:fixed !important;inset:0 !important;width:auto !important;height:auto !important}
+.picker-dialog{position:fixed !important;top:calc(env(safe-area-inset-top) + 8px) !important;left:50% !important;transform:translateX(-50%);max-width:calc(100vw - 8px) !important}
 #v-memo>h1,#v-report>h1,#v-set>h1,#inTitle{display:none}
 .linkb{font:inherit;font-size:14px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:var(--r-sm);padding:10px 14px;cursor:pointer;width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
 .linkb::after{content:"›";color:var(--faint);font-size:18px}
@@ -1111,8 +1114,14 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   // アプリ内ブラウザ（noteアプリなど）で下のメニューが浮いてしまうのを防ぐ：見えている画面の下端にそろえる
   (function pinBar() {
     const bar = document.querySelector(".tabbar"), vv = window.visualViewport; if (!bar || !vv) return;
+    // ホーム画面に追加したアプリでは、画面の下にそのまま固定する（ずれ直しが逆にずれの原因になるため）
+    const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+    if (standalone) return;
     let raf = 0;
-    const place = () => { raf = 0; const h = bar.offsetHeight; if (!h) return; const top = Math.round(vv.offsetTop + vv.height - h); bar.style.top = top + "px"; bar.style.bottom = "auto"; };
+    const place = () => { raf = 0; const h = bar.offsetHeight; if (!h) return;
+      // キーボードが閉じていて画面がずれていないときは、ふつうの下固定に戻す
+      if (vv.offsetTop < 1 && Math.abs(window.innerHeight - vv.height) < 2) { bar.style.top = ""; bar.style.bottom = ""; return; }
+      const top = Math.round(vv.offsetTop + vv.height - h); bar.style.top = top + "px"; bar.style.bottom = "auto"; };
     const req = () => { if (!raf) raf = requestAnimationFrame(place); };
     vv.addEventListener("resize", req); vv.addEventListener("scroll", req); window.addEventListener("scroll", req, { passive: true }); window.addEventListener("resize", req);
     window.addEventListener("orientationchange", () => setTimeout(place, 300)); window.addEventListener("pageshow", req);
