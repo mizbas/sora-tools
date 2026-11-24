@@ -102,7 +102,11 @@ input[type=date].in{font:inherit;font-size:16px;padding:9px 11px;border:1px soli
 .dd{position:fixed;z-index:70;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(20,40,75,.18);list-style:none;margin:0;padding:4px 0;max-height:250px;overflow:auto;display:none}
 .dd.on{display:block}
 .dd li{padding:11px 12px;font-size:14.5px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;cursor:pointer;border-bottom:1px solid var(--fill)}
-.dd li small{color:var(--sub);font-size:12px;white-space:nowrap}
+.dd li small{color:var(--sub);font-size:12px;white-space:nowrap;flex:none}
+.dd li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dd li span b{color:var(--primary)}
+.dd li.act span b{color:#fff}
+.dd.below li{padding:12px 14px;font-size:15.5px}
 .dd li.act{background:var(--primary);color:#fff}.dd li.act small{color:#fff}
 body.kb .tabbar,body.kb .foot,body.kb header,body.kb #inTools,body.kb #v-input h1{display:none}
 body.kb{padding-bottom:45vh}
@@ -493,9 +497,17 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const shopN = {}, items = {};
     live(s.tx).forEach(t => {
       if (t.shop) shopN[t.shop] = (shopN[t.shop] || 0) + 1;
-      if (t.item) { const k = t.type + ":" + t.item, p = items[k]; if (!p || p.date <= t.date) items[k] = Object.assign({ item: t.item, type: t.type, cat: t.cat, unit: Math.round(t.amount / (t.qty || 1)), date: t.date, n: (p ? p.n : 0) + 1 }, t.uval ? { uval: t.uval, utype: t.utype } : {}); else p.n++; }
+      if (t.item) { const k = t.type + ":" + t.item, p = items[k], sh = Object.assign({}, p ? p.shops : {}); if (t.shop) sh[t.shop] = (sh[t.shop] || 0) + 1;
+        if (!p || p.date <= t.date) items[k] = Object.assign({ item: t.item, type: t.type, cat: t.cat, unit: Math.round(t.amount / (t.qty || 1)), date: t.date, n: (p ? p.n : 0) + 1, shops: sh }, t.uval ? { uval: t.uval, utype: t.utype } : {}); else { p.n++; p.shops = sh; } }
     });
     return { shops: Object.keys(shopN).sort((a, b) => shopN[b] - shopN[a]), items: Object.values(items).sort((a, b) => b.n - a.n) };
+  }
+  // 品名の候補の並び順：今のお店でよく買うもの → 名前の先頭が合うもの → よく買うもの → 最近買ったもの
+  function rankItems(items, q, opt) {
+    const o = opt || {}, t = normName(q); if (!t) return [];
+    return items.filter(x => (!o.type || x.type === o.type) && normName(x.item).includes(t))
+      .map(x => { const sc = o.shop && x.shops ? x.shops[o.shop] || 0 : 0, nm = normName(x.item); return { x, s: (sc ? 1000 + Math.min(sc, 50) * 10 : 0) + (nm === t ? 800 : nm.startsWith(t) ? 500 : 0) + Math.min(x.n || 0, 100) }; })
+      .sort((a, b) => b.s - a.s || (a.x.date < b.x.date ? 1 : a.x.date > b.x.date ? -1 : 0)).slice(0, o.max || 4).map(a => a.x);
   }
   // ---- 底値帳：容量あたりの値段 ----
   function normName(x) {
@@ -746,7 +758,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -1077,15 +1089,24 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
 
   // ---- 入力候補（お店・カテゴリ・品名）と Enter で次へ ----
   const DD = $("dd"); let ddFor = null, ddItems = [], ddAct = -1;
-  function ddShow(input, items) {
-    ddFor = input; ddItems = items.slice(0, 8); ddAct = -1;
+  // 入力した文字に合う部分を太字にする（ひらがな・カタカナの違いは気にしない）
+  function hiMatch(name, q) {
+    const n = String(name), t = K.normName(q); if (!t) return esc(n);
+    for (let a = 0; a < n.length; a++) for (let b = n.length; b > a; b--) if (K.normName(n.slice(a, b)) === t) return esc(n.slice(0, a)) + "<b>" + esc(n.slice(a, b)) + "</b>" + esc(n.slice(b));
+    return esc(n);
+  }
+  let ddBelow = false;
+  function ddShow(input, items, opt) {
+    ddFor = input; ddItems = items.slice(0, 8); ddAct = -1; ddBelow = !!(opt && opt.below);
     if (!ddItems.length || document.activeElement !== input) { ddHide(); return; }
-    DD.innerHTML = ddItems.map((x, i) => `<li data-i="${i}"><span>${esc(x.label)}</span>${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</li>`).join("");
-    ddPlace(input); DD.classList.add("on");
+    DD.innerHTML = ddItems.map((x, i) => `<li data-i="${i}"><span>${x.html || esc(x.label)}</span>${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</li>`).join("");
+    DD.classList.toggle("below", ddBelow); ddPlace(input); DD.classList.add("on");
   }
   function ddPlace(input) {
     const r = input.getBoundingClientRect(), vv = window.visualViewport, vh = vv ? vv.height + vv.offsetTop : innerHeight, w = Math.max(r.width, 200);
     DD.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px"; DD.style.width = w + "px";
+    if (ddBelow) { const rw = input.closest(".row"); if (rw) { const q2 = rw.getBoundingClientRect(); DD.style.left = (q2.left + 6) + "px"; DD.style.width = (q2.width - 12) + "px"; } DD.style.bottom = "auto"; DD.style.top = (r.bottom + 4) + "px"; DD.style.maxHeight = Math.max(96, vh - r.bottom - 10) + "px"; return; }
+    DD.style.maxHeight = "";
     if (vh - r.bottom < 170 && r.top > vh - r.bottom) { DD.style.top = "auto"; DD.style.bottom = (innerHeight - r.top + 4) + "px"; } else { DD.style.bottom = "auto"; DD.style.top = (r.bottom + 4) + "px"; }
   }
   function ddHide() { DD.classList.remove("on"); ddFor = null; ddItems = []; ddAct = -1; }
@@ -1134,7 +1155,8 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const t = all ? "" : normName(inp.value);
     if (inp.id === "inShop") return ddShow(inp, SG.shops.filter(x => !t || normName(x).includes(t) && x !== inp.value).map(x => ({ label: x, pick: () => { inp.value = x; F.shop = x; } })));
     const i = Number(rowEl(inp).dataset.i);
-    if (inp.classList.contains("it")) { if (!t) return ddHide(); return ddShow(inp, SG.items.filter(x => x.type === F.type && normName(x.item).includes(t)).map(x => ({ label: x.item, sub: x.cat + "・" + yen(x.unit) + (x.uval ? "・" + x.uval + x.utype : ""), pick: () => applyHit(i, x) }))); }
+    if (inp.classList.contains("it")) { if (!t) return ddHide(); const shop = ($("inShop").value || F.shop || "").trim(), cur = (F.rows[i] || {}).cat;
+      return ddShow(inp, K.rankItems(SG.items, inp.value, { type: F.type, shop }).map(x => ({ label: x.item, html: hiMatch(x.item, inp.value), sub: "前回 " + yen(x.unit) + (x.cat !== cur ? "・" + x.cat : ""), pick: () => applyHit(i, x) })), { below: true }); }
   }
   const normName = K.normName;
   const FIELDS = ".ct,.it,.qty,.am,.dc,.uv,#inShop";
@@ -1177,7 +1199,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const fix = () => {
       if (document.activeElement !== el) return;
       const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0), h = vv ? vv.height : innerHeight, r = el.getBoundingClientRect();
-      const want = top + Math.min(h * 0.25, 140); if (r.top < top + 8 || r.bottom > top + h - 24 || r.top - want > h * 0.3) window.scrollBy(0, r.top - want);
+      const want = top + (el.classList.contains("it") ? Math.min(h * 0.1, 56) : Math.min(h * 0.25, 140)); if (r.top < top + 8 || r.bottom > top + h - 24 || r.top - want > h * 0.3) window.scrollBy(0, r.top - want);
     };
     fix(); setTimeout(fix, 120); setTimeout(fix, 380);
   }
