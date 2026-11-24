@@ -172,6 +172,9 @@ section.card.fopen>.fbody{display:block}
 .sw button{aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
 .sw button.on{box-shadow:0 0 0 2px var(--ink)}
 .bud.stx{grid-template-columns:1fr 130px}
+.chk{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--sub);margin:8px 0 2px;cursor:pointer}
+.chk input{width:18px;height:18px;margin:0}
+.yt{font-size:13.5px;color:var(--sub)}.yt b{color:var(--ink)}
 .avgbar{display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--sub);margin:0 0 8px}
 .avgb{display:block;font:inherit;font-size:11.5px;font-weight:600;border:0;background:var(--primary-soft);color:var(--primary);border-radius:999px;padding:2px 8px;margin-top:3px;cursor:pointer}
 .li{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -375,7 +378,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <details class="fold"><summary>自動で分けるルール</summary><p class="note" style="margin:4px 0">明細の内容にこの言葉が入っていたら、このカテゴリにします。取り込みのときにカテゴリを直すと自動で増えます。</p><div id="rules"></div>
         <div class="f2" style="margin-top:6px"><input type="text" id="rKw" class="in" placeholder="例：ENEOS"><select id="rCat" class="in"></select></div><button type="button" class="ghostb wide" id="rAdd">ルールを追加</button></details>
     </section>
-    <section class="card"><h2>品名の読み（ひらがなで探すため）</h2><p class="note" style="margin:0 0 6px">漢字の品名を入力したとき、変換する前のひらがなを読みとして自動で覚えます（例：「ぎゅう」で「牛乳」が出ます）。ここで直したり、まだ読みがない品名に付けたりできます。</p><input type="text" class="in" id="yomiQ" placeholder="品名で絞りこむ（例：牛）" autocomplete="off"><div id="yomiList"></div></section>
+    <section class="card"><h2>品名の読み（ひらがなで探すため）</h2><p class="note" style="margin:0 0 6px">漢字の品名を入力したとき、変換する前のひらがなを読みとして自動で覚えます（例：「ぎゅう」で「牛乳」が出ます）。ここで直したり、まだ読みがない品名に付けたりできます。</p><div id="yomiTools"></div><input type="text" class="in" id="yomiQ" placeholder="品名で絞りこむ（例：牛）" autocomplete="off" style="margin-top:8px"><label class="chk"><input type="checkbox" id="yomiMiss"> 読みがないものだけ</label><div id="yomiList"></div></section>
     <section class="card"><h2>お店ごとの税込・税抜</h2><p class="note" style="margin:0 0 4px">入力でお店を選んだときの「金額の入れ方」です。登録すると、そのときの入れ方がそのお店の設定になります（初めてのお店も）。ここで変えることもできます。</p><div id="shopTaxList"></div></section>
     <section class="card"><h2>カテゴリ</h2><div class="seg full" id="cType" style="margin-bottom:6px"><button type="button" data-t="expense" class="on">支出</button><button type="button" data-t="income">収入</button></div><p class="note" style="margin:0 0 4px">名前を書き換えると、過去の記録も変わります。ほかのカテゴリと同じ名前にすると、1つにまとまります。</p><div id="catList"></div>
       <div class="f2" style="margin-top:8px"><input type="text" id="cName" class="in" placeholder="新しいカテゴリ"><button type="button" class="ghostb" id="cAdd">追加</button></div></section>
@@ -583,6 +586,17 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const y = toHira(st.R.join("")).replace(/[\s\u3000]/g, ""); return /[\u3041-\u3096]/.test(y) ? y : "";
   }
   const yomiInit = (v, yomi) => { const a = Array.from(String(v || "")); return { v: a.join(""), R: yomi && a.length ? a.map((c, i) => (i === 0 ? yomi : "")) : a.map(c => (known(c) ? c : null)) }; };
+  // AIなどが作った「品名と読み」の一覧を読み取る（1行に1つ。タブ・カンマ・コロン・＝・→ で区切る）
+  function parseYomiList(text) {
+    const out = [];
+    String(text || "").split(/\r?\n/).forEach(line => {
+      const l = line.replace(/^[\s\-・*\d.、)）]+/, "").trim(); if (!l) return;
+      const m = l.match(/^(.+?)\s*(?:\t|,|，|:|：|=|＝|→|->|\s{2,}|\s\|\s|\|)\s*(.+)$/); if (!m) return;
+      const item = m[1].replace(/^["「『]|["」』]$/g, "").trim(), y = toHira(m[2].replace(/^["「『（(]|["」』）)]$/g, "").trim()).replace(/[\s\u3000]/g, "");
+      if (item && y && /^[\u3041-\u3096\u30fc0-9A-Za-z.\-]+$/.test(y)) out.push({ item, yomi: y });
+    });
+    return out;
+  }
   // 品名の候補の並び順：今のお店でよく買うもの → 名前の先頭が合うもの → よく買うもの → 最近買ったもの
   function rankItems(items, q, opt) {
     const o = opt || {}, t = normName(q); if (!t) return [];
@@ -840,7 +854,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, shopSetting, isKana, toHira, yomiTrack, yomiOf, yomiInit, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, shopSetting, isKana, toHira, yomiTrack, yomiOf, yomiInit, parseYomiList, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -1607,12 +1621,40 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   });
   $("cType").onclick = e => { const b = e.target.closest("button"); if (b) { cType = b.dataset.t; renderSet(); } };
   let catOpen = null, shopTaxAll = false;
+  // 読みのいる品名（かな・英数字だけの品名はいらない）
+  const needYomi = () => K.suggest(S).items.filter(x => x.type === "expense" && /[^\u3041-\u3096\u30a1-\u30fa\u30fc\s\x20-\x7e]/.test(x.item));
+  const YOMI_PROMPT = "次の品名（スーパーなどで買ったもの）の読みを、ひらがなで答えてください。\n1行に1つ、「品名<タブ>よみ」の形で、品名はそのまま書き写してください。説明は不要です。\n\n";
   function drawYomi() {
-    const box = $("yomiList"); if (!box) return; const q = K.normName($("yomiQ").value);
-    const l = K.suggest(S).items.filter(x => x.type === "expense" && !K.isKana(x.item) && (!q || K.normName(x.item).includes(q) || (x.yomi && K.normName(x.yomi).includes(q)))).slice(0, 20);
-    box.innerHTML = l.length ? l.map(x => `<div class="bud stx"><span>${esc(x.item)}</span><input type="text" data-yomi="${esc(x.item)}" value="${esc(x.yomi || "")}" placeholder="よみ" autocomplete="off" style="width:130px;text-align:left"></div>`).join("") + `<p class="note">よく買う順に20件まで出ています。上の欄で絞りこめます。</p>` : `<p class="empty">${q ? "その品名はありません。" : "漢字の品名を登録すると、ここに出てきます。"}</p>`;
+    if (!$("yomiTools")) return;
+    const all = needYomi(), none = all.filter(x => !x.yomi);
+    $("yomiTools").innerHTML = `<div class="yt"><b>読みがない品名：${none.length}件</b>（全${all.length}件）</div>${none.length ? `<details class="fold" style="margin-top:6px"><summary>AIに読みを作ってもらって、まとめて入れる</summary>
+      <ol class="note" style="margin:6px 0 8px 18px;padding:0;line-height:1.8"><li>「頼む文をコピー」を押して、ChatGPTやClaudeなどのAIに貼り付けて送ります</li><li>AIの答えを全部コピーして、下の欄に貼り付けます</li><li>「取り込む」を押すと、読みがまとめて入ります</li></ol>
+      <button type="button" class="ghostb wide" id="yomiCopy">頼む文をコピー（${none.length}件）</button>
+      <textarea id="yomiPaste" class="in" rows="5" placeholder="AIの答えをここに貼り付け（例：卵	たまご）" style="margin-top:8px;font-size:15px"></textarea>
+      <label class="chk"><input type="checkbox" id="yomiOver"> すでに読みがある品名も、AIの読みで上書きする</label>
+      <button type="button" class="primary wide" id="yomiImp" style="margin-top:6px">取り込む</button></details>` : ""}`;
+    if ($("yomiCopy")) $("yomiCopy").onclick = async () => {
+      const text = YOMI_PROMPT + none.map(x => x.item).join("\n");
+      try { await navigator.clipboard.writeText(text); toast("コピーしました。AIに貼り付けて送ってください"); }
+      catch (e) { $("yomiPaste").value = text; $("yomiPaste").select(); toast("下の欄の文を長押しでコピーして、AIに送ってください"); }
+    };
+    if ($("yomiImp")) $("yomiImp").onclick = () => {
+      const list = K.parseYomiList($("yomiPaste").value); if (!list.length) { toast("読み取れる行がありません。「品名<タブ>よみ」の形か確認してください"); return; }
+      const over = $("yomiOver").checked, names = {}; all.forEach(x => { names[x.item] = x; });
+      const t = now(); let n = 0, skip = 0;
+      list.forEach(({ item, yomi }) => { const x = names[item]; if (!x) { skip++; return; } if (x.yomi && !over) return; S.tx.forEach(tx => { if (!tx.del && tx.item === item && tx.yomi !== yomi) { tx.yomi = yomi; tx.updatedAt = t; } }); n++; });
+      if (!n) { toast(skip ? "家計簿にある品名と一致しませんでした" : "新しく入れる読みはありませんでした"); return; }
+      changed(); toast(`${n}件の読みを入れました${skip ? `（${skip}件は品名が一致せず外しました）` : ""}`);
+    };
+    drawYomiList();
   }
-  document.addEventListener("input", e => { if (e.target.id === "yomiQ") drawYomi(); });
+  function drawYomiList() {
+    const box = $("yomiList"); if (!box) return; const q = K.normName($("yomiQ").value), miss = $("yomiMiss").checked, all = needYomi();
+    const l = all.filter(x => (!miss || !x.yomi) && (!q || K.normName(x.item).includes(q) || (x.yomi && K.normName(x.yomi).includes(q)))).slice(0, 20);
+    box.innerHTML = l.length ? l.map(x => `<div class="bud stx"><span>${esc(x.item)}</span><input type="text" data-yomi="${esc(x.item)}" value="${esc(x.yomi || "")}" placeholder="よみ" autocomplete="off" style="width:130px;text-align:left"></div>`).join("") + `<p class="note">よく買う順に20件まで出ています。上の欄で絞りこめます。</p>` : `<p class="empty">${q ? "その品名はありません。" : miss ? "読みがない品名はありません。" : "漢字の品名を登録すると、ここに出てきます。"}</p>`;
+  }
+  document.addEventListener("input", e => { if (e.target.id === "yomiQ") drawYomiList(); });
+  document.addEventListener("change", e => { if (e.target.id === "yomiMiss") drawYomiList(); });
   document.addEventListener("change", e => {
     const it = e.target.dataset && e.target.dataset.yomi; if (it === undefined) return;
     const y = K.toHira(e.target.value.trim()).replace(/\s/g, ""); if (y && !/^[\u3041-\u3096\u30fc0-9A-Za-z.\-]+$/.test(y)) { toast("読みは、ひらがなで入れてください"); return; }
