@@ -39,7 +39,9 @@ h1{margin:16px 0 4px}
 .rc .nm{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rc .amt{flex:none;width:auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .rc .amt.inc{color:var(--pos)}
-.rr{border:1px solid var(--line);border-radius:var(--r-md);background:#fff;margin:6px 0;overflow:hidden}
+.rr{border:1px solid var(--line);border-radius:var(--r-md);background:#fff;margin:6px 0;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.rr:active{background:var(--primary-soft)}
+.rr:active .rc{background:transparent}
 .rr .rc{border:0;margin:0;border-radius:0}
 .rr ul{list-style:none;margin:0;padding:2px 12px 10px 16px;font-size:13.5px}
 .rr li{display:flex;gap:8px;padding:2px 0;color:var(--ink)}
@@ -812,7 +814,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return `<button type="button" class="rc" data-rid="${esc(r.rid)}" style="border-left:4px solid ${acc}"><div class="top"><span class="nm">${esc(title)}</span><span class="amt${r.type === "income" ? " inc" : ""}">${r.type === "income" ? "+" : ""}${yen(r.total)}</span></div>
       <div class="ds">${r.rows.some(t => t.auto) ? `<span class="chip auto">自動</span>` : ""}${cs.map(c => catChip(r.type, c)).join("")}${esc(desc)}${r.by && r.by !== "自動" ? `<span style="float:right">${esc(r.by)}</span>` : ""}</div></button>`;
   }
-  document.addEventListener("click", e => { const sh = e.target.closest("[data-shop]"); if (sh) return openShop(sh.dataset.shop); const b = e.target.closest(".rc"); if (b) return editReceipt(b.dataset.rid); const c = e.target.closest(".cbar[data-cat]"); if (c) openCat(c.dataset.cat); });
+  document.addEventListener("click", e => { const sh = e.target.closest("[data-shop]"); if (sh) return openShop(sh.dataset.shop); const b = e.target.closest(".rr[data-rid], .rc[data-rid]"); if (b) return editReceipt(b.dataset.rid); const c = e.target.closest(".cbar[data-cat]"); if (c) openCat(c.dataset.cat); });
   $("cats").addEventListener("keydown", e => { const c = e.target.closest(".cbar[data-cat]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openCat(c.dataset.cat); } });
 
   // ---- カテゴリの内訳 ----
@@ -842,6 +844,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   let detailShop = "", shopMonths = 6;
   function openShop(shop) { detailShop = shop; shopMonths = 6; go("shop"); }
   $("shopBack").onclick = () => back("report");
+  $("sp") && $("sp").addEventListener("keydown", e => { const r = e.target.closest(".rr[data-rid]"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); editReceipt(r.dataset.rid); } });
   function renderShop() {
     const d = K.shopDetail(S, detailShop);
     $("spTitle").textContent = detailShop;
@@ -853,7 +856,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <section class="card"><h2>レシート</h2><p class="note" style="margin-top:0">押すと、そのレシートを直せます。</p>
       ${ms.map(m => `<div class="mh"><span>${mLabel(m.ym)}</span><span>${m.receipts.length}回・${yen(m.total)}</span></div>` + m.receipts.map(r => {
         const main = r.rows.slice().sort((a, b) => b.amount - a.amount)[0];
-        return `<div class="rr" style="border-left:4px solid ${color("expense", main.cat)}"><button type="button" class="rc" data-rid="${esc(r.rid)}"><div class="top"><span class="nm">${r.date.slice(5, 7).replace(/^0/, "")}月${Number(r.date.slice(8))}日（${"日月火水木金土"[new Date(r.date + "T00:00:00").getDay()]}）</span><span class="amt">${yen(r.total)}</span></div>${r.by ? `<div class="ds">${esc(r.by)}が入力</div>` : ""}</button>
+        return `<div class="rr" role="button" tabindex="0" data-rid="${esc(r.rid)}" aria-label="${esc(r.date)}のレシートを直す" style="border-left:4px solid ${color("expense", main.cat)}"><div class="rc"><div class="top"><span class="nm">${r.date.slice(5, 7).replace(/^0/, "")}月${Number(r.date.slice(8))}日（${"日月火水木金土"[new Date(r.date + "T00:00:00").getDay()]}）</span><span class="amt">${yen(r.total)}</span></div>${r.by ? `<div class="ds">${esc(r.by)}が入力</div>` : ""}</div>
           <ul>${r.rows.map(t => `<li><span>${esc(t.item || t.cat)}${t.qty > 1 ? ` <small>×${t.qty}</small>` : ""}${t.disc ? ` <small>値引き${yen(t.disc)}</small>` : ""}</span><span>${yen(t.amount)}</span></li>`).join("")}</ul></div>`;
       }).join("")).join("")}
       ${d.months.length > shopMonths ? `<button type="button" class="ghostb wide" id="spMore">もっと前を見る（あと${d.months.length - shopMonths}か月）</button>` : ""}</section>`;
