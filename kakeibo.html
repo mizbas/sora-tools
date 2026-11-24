@@ -33,11 +33,11 @@ body{margin:0;min-height:100vh;background:#F2F4F7;color:var(--ink);font-family:-
 </head>
 <body>
 <div class="load" id="load">読み込んでいます…</div>
-<script src="crypto.js?v=mwu8gxev"></script>
+<script src="crypto.js?v=mwu8taz1"></script>
 <script>
 (async function () {
   const ID = "kakeibo", SITE = {"salt":"b8j/k89hxRTcldfUHYJOqA==","iter":200000};
-  const file = () => fetch("tools/" + ID + ".json?v=mwu8gxev").then(r => r.json());
+  const file = () => fetch("tools/" + ID + ".json?v=mwu8taz1").then(r => r.json());
   async function open(f) {
     const html = await SoraLock.decryptTool(ID, f || await file());
     document.open(); document.write(html); document.close();
