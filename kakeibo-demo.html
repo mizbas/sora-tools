@@ -211,6 +211,34 @@ body.kb .demo{display:none}
 tr.cheap td{background:var(--pos-soft);font-weight:700}
 .fold{border-top:1px solid var(--line);margin-top:10px}
 @media print{.tabbar,.foot{display:none}}
+/* ---- PC（広い画面）：左にメニュー、中身を広く ---- */
+.kbd{display:none}
+@media (min-width:900px){
+  body{padding:0 0 32px 216px}
+  .wrap{max-width:1120px;padding:0 28px}
+  header.appbar{margin:0 -28px;padding-left:28px;padding-right:28px;min-height:56px}
+  header.appbar b{font-size:19px}
+  .tabbar{top:0;bottom:0;right:auto;width:216px;border-top:0;border-right:1px solid var(--line);display:block;padding:18px 12px;background:#fff}
+  .tabbar::before{content:"わが家の家計簿";display:block;font-weight:700;font-size:16px;color:var(--ink);padding:4px 12px 18px}
+  .tabbar>div:not(.kbd){display:flex;flex-direction:column;gap:2px;max-width:none}
+  .tabbar button{flex:none;flex-direction:row;gap:12px;font-size:14.5px;padding:11px 12px;border-radius:10px;color:var(--sub);justify-content:flex-start}
+  .tabbar button:hover{background:var(--fill)}
+  .tabbar button.on{background:var(--primary-soft);color:var(--primary)}
+  .tabbar button svg{width:22px;height:22px}
+  .tabbar button.add{order:-1;background:var(--primary);color:#fff;margin-bottom:10px;justify-content:center}
+  .tabbar button.add:hover,.tabbar button.add.on{background:var(--primary);color:#fff;filter:brightness(1.07)}
+  .tabbar button.add svg{background:none;padding:0;width:20px;height:20px;margin:0}
+  .tabbar>.kbd{display:block;max-width:none;width:auto;position:absolute;left:24px;right:24px;bottom:18px;font-size:12px;color:var(--faint);line-height:1.9}
+  .kbd kbd{display:inline-block;width:auto;height:auto;font:inherit;font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--sub);background:#fff}
+  .view.on{max-width:760px}
+  #v-home.on{max-width:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px;align-items:start}
+  #v-home>*{grid-column:1}
+  #v-home>#recCard{grid-column:2;grid-row:1 / span 8;margin-top:12px;position:sticky;top:68px;max-height:calc(100vh - 92px);overflow:auto}
+  .foot{bottom:16px}
+  .toast{left:calc(50% + 108px);bottom:28px}
+  .rc:hover,.rr:hover{border-color:#B9C7DD}
+  .cbar[data-cat]:hover{background:var(--fill)}
+}
 </style>
 </head>
 <body>
@@ -224,7 +252,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     <div id="fxAlert"></div>
     <div class="sum" id="sum"></div>
     <section class="card" id="catCard"><h2>カテゴリ別の支出</h2><div id="cats"></div></section>
-    <section class="card"><h2>記録</h2><div id="dayList"></div></section>
+    <section class="card" id="recCard"><h2>記録</h2><div id="dayList"></div></section>
   </section>
 
   <!-- カテゴリの内訳 -->
@@ -341,7 +369,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   </section>
 </div>
 
-<nav class="tabbar no-print" aria-label="家計簿のメニュー"><div>
+<nav class="tabbar no-print" aria-label="家計簿のメニュー"><div class="kbd"><kbd>N</kbd> 新しく入力<br><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 登録<br><kbd>Esc</kbd> 戻る</div><div>
   <button type="button" data-v="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 10.5L12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/></svg>ホーム</button>
   <button type="button" data-v="input" class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>入力</button>
   <button type="button" data-v="memo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M8.5 10l1.5 1.5 3-3M8.5 16h7"/></svg>メモ</button>
@@ -815,6 +843,19 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     $("abBack").hidden = !(bb && bb.style.display !== "none");
     if (typeof drawAbSync === "function") drawAbSync();
   }
+  // PCのショートカット：N＝新しく入力、Ctrl/⌘+Enter＝登録、Esc＝戻る
+  document.addEventListener("keydown", e => {
+    const t = e.target, inField = t && t.matches && t.matches("input,textarea,select,[contenteditable]");
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && view === "input") { e.preventDefault(); $("saveBtn").click(); return; }
+    if (e.key === "Escape") {
+      if (document.querySelector(".dd.on")) return;
+      if (inField) { t.blur(); return; }
+      if (!$("abBack").hidden) { e.preventDefault(); $("abBack").click(); }
+      return;
+    }
+    if (inField || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "n" || e.key === "N") { e.preventDefault(); if (view === "input" && F && F.rid) return; go("input"); setTimeout(() => { const f = document.querySelector("#v-input input[type=text]"); if (f && !matchMedia("(pointer:coarse)").matches) f.focus(); }, 50); }
+  });
   $("abBack").onclick = () => { const bb = document.querySelector("#v-" + view + " .backb"); if (bb) bb.click(); };
   document.addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (!o) return; const u = o.dataset.open; if (/^https?:/.test(u)) window.open(u, "_blank", "noopener"); else location.href = u; });
   function go(v, opt) {
@@ -1117,10 +1158,11 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     // ホーム画面に追加したアプリでは、画面の下にそのまま固定する（ずれ直しが逆にずれの原因になるため）
     const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
     if (standalone) return;
+    const wide = () => window.matchMedia && matchMedia("(min-width:900px)").matches;
     let raf = 0;
     const place = () => { raf = 0; const h = bar.offsetHeight; if (!h) return;
       // キーボードが閉じていて画面がずれていないときは、ふつうの下固定に戻す
-      if (vv.offsetTop < 1 && Math.abs(window.innerHeight - vv.height) < 2) { bar.style.top = ""; bar.style.bottom = ""; return; }
+      if (wide() || (vv.offsetTop < 1 && Math.abs(window.innerHeight - vv.height) < 2)) { bar.style.top = ""; bar.style.bottom = ""; return; }
       const top = Math.round(vv.offsetTop + vv.height - h); bar.style.top = top + "px"; bar.style.bottom = "auto"; };
     const req = () => { if (!raf) raf = requestAnimationFrame(place); };
     vv.addEventListener("resize", req); vv.addEventListener("scroll", req); window.addEventListener("scroll", req, { passive: true }); window.addEventListener("resize", req);
