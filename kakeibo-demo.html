@@ -1072,6 +1072,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       const exists = K.live(S.tx).some(t => String(t.shop || "").trim() === nn);
       if (!confirm(exists ? `「${old}」を「${nn}」にまとめますか？\n「${old}」の記録はすべて「${nn}」になります。` : `お店の名前を「${nn}」に変えますか？`)) return;
       const t = now(); let n = 0; S.tx.forEach(x => { if (!x.del && String(x.shop || "").trim() === old) { Object.assign(x, { shop: nn, updatedAt: t }); n++; } });
+      const so = S.cats.find(c => c.id === "sh_" + old && !c.del); if (so) { Object.assign(so, { del: true, updatedAt: t }); if (!S.cats.some(c => c.id === "sh_" + nn && !c.del)) { const sn = S.cats.find(c => c.id === "sh_" + nn); if (sn) Object.assign(sn, { tax: so.tax, del: false, updatedAt: t }); else S.cats.push({ id: "sh_" + nn, type: "shop", name: nn, tax: so.tax, updatedAt: t }); } }
       detailShop = nn; try { history.replaceState(navState(), ""); } catch (e) {} changed(); toast(exists ? `${n}件を「${nn}」にまとめました` : "名前を変えました");
     };
   }
@@ -1383,15 +1384,15 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     rows.forEach(r => { if (!r.cat) r.cat = F.type === "income" ? "その他の収入" : "その他"; if (!cats(F.type).some(c => c.name === r.cat)) { const l = cats(F.type); S.cats.push({ id: K.uid("c"), name: r.cat, type: F.type, color: K.PALETTE[l.length % K.PALETTE.length], order: (l.length ? l[l.length - 1].order : 0) + 1, updatedAt: t }); } });
     const keep = {};
     rows.forEach((r, i) => {
-      const o = { type: F.type, date: F.date, shop: F.shop, rid, item: r.item, cat: r.cat, qty: r.qty || 1, amount: rc.incl[i], memo: i === 0 ? F.memo : "", disc: Math.round(Math.abs(K.num(r.disc))) || 0, uval: K.num(r.uval) > 0 && r.utype ? K.num(r.uval) : 0, utype: K.num(r.uval) > 0 && r.utype ? r.utype : "", tm: F.type === "income" ? "" : F.tax === "incl" ? "i" : String(F.tax), yomi: r.item && r.yomi && !K.isKana(r.item) ? r.yomi : "", updatedAt: t };
+      const o = { type: F.type, date: F.date, shop: F.shop, rid, item: r.item, cat: r.cat, qty: r.qty || 1, amount: rc.incl[i], memo: i === 0 ? F.memo : "", disc: Math.round(Math.abs(K.num(r.disc))) || 0, uval: K.num(r.uval) > 0 && r.utype ? K.num(r.uval) : 0, utype: K.num(r.uval) > 0 && r.utype ? r.utype : "", tm: F.type === "income" ? "" : F.rid && r.id ? ((S.tx.find(x => x.id === r.id) || {}).tm || "") : F.tax === "incl" ? "i" : String(F.tax), yomi: r.item && r.yomi && !K.isKana(r.item) ? r.yomi : "", updatedAt: t };
       const ex = r.id && S.tx.find(x => x.id === r.id);
       if (ex) { Object.assign(ex, o); keep[ex.id] = 1; } else { const id = K.uid("t"); S.tx.push(Object.assign({ id, by: P.name || "", createdAt: t }, o)); keep[id] = 1; }
     });
     if (F.rid) S.tx.forEach(x => { if (x.rid === F.rid && !keep[x.id] && !x.del) Object.assign(x, { del: true, updatedAt: t }); });
     if (F.type === "expense") {
-      P.lastCat = rows[rows.length - 1].cat; P.tax = F.tax; psave();
-      // 登録したお店は、この入れ方をそのお店の設定にする（次からこの入れ方で始まる）
-      const sh = (F.shop || "").trim(); if (sh) { const id = "sh_" + sh, ex = S.cats.find(c => c.id === id); if (!ex) S.cats.push({ id, type: "shop", name: sh, tax: String(F.tax), updatedAt: t }); else if (ex.del || String(ex.tax) !== String(F.tax)) Object.assign(ex, { tax: String(F.tax), del: false, updatedAt: t }); }
+      P.lastCat = rows[rows.length - 1].cat; if (!F.rid) P.tax = F.tax; psave();
+      // 登録したお店は、この入れ方をそのお店の設定にする（次からこの入れ方で始まる）。直すとき（税込で表示している）は変えない
+      const sh = F.rid ? "" : (F.shop || "").trim(); if (sh) { const id = "sh_" + sh, ex = S.cats.find(c => c.id === id); if (!ex) S.cats.push({ id, type: "shop", name: sh, tax: String(F.tax), updatedAt: t }); else if (ex.del || String(ex.tax) !== String(F.tax)) Object.assign(ex, { tax: String(F.tax), del: false, updatedAt: t }); }
     }
     const bought = rows.map(r => r.memoId).filter(Boolean);
     S.memo.forEach(m => { if (bought.includes(m.id) && !m.del) Object.assign(m, { del: true, updatedAt: t }); });
