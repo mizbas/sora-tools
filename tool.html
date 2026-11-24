@@ -13,7 +13,7 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;background:#F2F4F
 </head>
 <body>
 <p id="msg">ツールを読み込んでいます…</p>
-<script src="crypto.js?v=mwu5icsv"></script>
+<script src="crypto.js?v=mwu5oiaf"></script>
 <script>
 (async function () {
   const id = new URLSearchParams(location.search).get("id") || "";
@@ -22,7 +22,7 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;background:#F2F4F
   if (id === "kakeibo") { location.replace("./kakeibo.html"); return; }
   if (!SoraLock.hasKey(id)) { location.replace("./index.html?unlock=" + id); return; }
   try {
-    const file = await (await fetch("tools/" + id + ".json?v=mwu5icsv")).json();
+    const file = await (await fetch("tools/" + id + ".json?v=mwu5oiaf")).json();
     const html = await SoraLock.decryptTool(id, file);
     document.open(); document.write(html); document.close();
   } catch (e) {

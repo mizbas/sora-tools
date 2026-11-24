@@ -93,7 +93,7 @@ td.shopl{cursor:pointer;color:var(--primary);font-weight:600}
 .in{width:100%!important;text-align:left!important}
 input[type=date].in{font:inherit;font-size:16px;padding:9px 11px;border:1px solid transparent;border-radius:var(--r-sm);background:var(--fill);color:var(--ink)}
 .rows{margin-top:6px}
-.row{border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin:8px 0;background:#fff}
+.row{scroll-margin-top:8px;border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin:8px 0;background:#fff}
 .row .r1{display:grid;grid-template-columns:112px 1fr;gap:8px}
 .row select.ct{width:100%;padding-right:26px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235D6878' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;background-size:16px;text-overflow:ellipsis}
 .row .amw{flex:1 1 auto;min-width:110px;display:flex;align-items:center;gap:3px;font-size:13px;color:var(--sub)}
@@ -1121,8 +1121,8 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const fit = () => {
       if (!ul.isConnected) return;
       const vv = window.visualViewport, top = vv ? vv.offsetTop : 0, bottom = top + (vv ? vv.height : innerHeight);
-      const fr = input.getBoundingClientRect(), ur = ul.getBoundingClientRect();
-      const over = ur.bottom - (bottom - 6); if (over > 0) window.scrollBy(0, Math.min(over, fr.top - top - 6));
+      const ur = ul.getBoundingClientRect(), row = input.closest(".row");
+      if (ur.bottom > bottom - 6 && row) row.scrollIntoView({ block: "start" });
     };
     fit(); requestAnimationFrame(fit); setTimeout(fit, 200);
   }
@@ -1226,8 +1226,11 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   // 入力中の欄を、キーボードに隠れない位置（見えている画面の上のほう）に出す
   function showField(el) {
     if (!el || !el.getBoundingClientRect) return;
+    const row = el.classList && el.classList.contains("it") ? el.closest(".row") : null;
     const fix = () => {
       if (document.activeElement !== el) return;
+      // 品名の欄は、その行をキーボードの上の見えている範囲のいちばん上に出す（下に候補が並ぶ場所をあける）
+      if (row) { const vv = window.visualViewport, top = vv ? vv.offsetTop : 0, r = row.getBoundingClientRect(); if (Math.abs(r.top - top - 8) > 24) row.scrollIntoView({ block: "start" }); return; }
       const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0), h = vv ? vv.height : innerHeight, r = el.getBoundingClientRect();
       const want = top + (el.classList.contains("it") ? Math.min(h * 0.1, 56) : Math.min(h * 0.25, 140)); if (r.top < top + 8 || r.bottom > top + h - 24 || r.top - want > h * 0.3) window.scrollBy(0, r.top - want);
     };
