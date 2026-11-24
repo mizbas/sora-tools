@@ -163,7 +163,7 @@ textarea.io{width:100%;min-height:90px;font:12px/1.5 ui-monospace,monospace;bord
 .sub2{display:flex;gap:8px;flex-wrap:wrap}
 /* タブバー */
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.97);border-top:1px solid var(--line);display:flex;justify-content:center;padding:4px 0 calc(4px + env(safe-area-inset-bottom));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-.tabbar div{display:flex;max-width:600px;width:100%}
+.tabbar>div:not(.kbd){display:flex;max-width:600px;width:100%}
 .tabbar button{flex:1;font:inherit;font-size:11px;font-weight:600;border:0;background:none;color:var(--faint);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;cursor:pointer}
 .tabbar button svg{width:24px;height:24px}
 .tabbar button.on{color:var(--primary)}
@@ -212,7 +212,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
 .fold{border-top:1px solid var(--line);margin-top:10px}
 @media print{.tabbar,.foot{display:none}}
 /* ---- PC（広い画面）：左にメニュー、中身を広く ---- */
-.kbd{display:none}
+.tabbar>.kbd{display:none}
 @media (min-width:900px){
   body{padding:0 0 32px 216px}
   .wrap{max-width:1120px;padding:0 28px}
