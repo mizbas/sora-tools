@@ -1,6 +1,6 @@
 // オフラインでも開けるようにするためのキャッシュ（ビルドごとに更新）
-const CACHE = "sora-tools-mwurobwc";
-const SHELL = ["./", "index.html", "tool.html", "crypto.js?v=mwurobwc", "app.css", "app.css?v=mwurobwc", "app.js", "manifest.webmanifest", "kakeibo.html", "kakeibo.webmanifest", "kakeibo-192.png", "icon-192.png", "icon-512.png"];
+const CACHE = "sora-tools-mwurw54n";
+const SHELL = ["./", "index.html", "tool.html", "crypto.js?v=mwurw54n", "app.css", "app.css?v=mwurw54n", "app.js", "manifest.webmanifest", "kakeibo.html", "kakeibo.webmanifest", "kakeibo-192.png", "icon-192.png", "icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));

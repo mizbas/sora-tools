@@ -33,14 +33,14 @@ body{margin:0;min-height:100vh;background:#F2F4F7;color:var(--ink);font-family:-
 </head>
 <body>
 <div class="load" id="load">読み込んでいます…</div>
-<script src="crypto.js?v=mwurobwc"></script>
+<script src="crypto.js?v=mwurw54n"></script>
 <script>
 (async function () {
   const ID = "kakeibo", SITE = {"salt":"b8j/k89hxRTcldfUHYJOqA==","iter":200000};
   // 家計簿の本体（暗号化済み）を取ってくる。通信できないときは、この端末に残しておいた前回の本体を使う
   const KEEP = "sora.app.kakeibo";
   async function file() {
-    try { const r = await fetch("tools/" + ID + ".json?v=mwurobwc"); if (!r.ok) throw new Error("http"); const t = await r.text(); JSON.parse(t); try { localStorage.setItem(KEEP, t); } catch (e) {} return JSON.parse(t); }
+    try { const r = await fetch("tools/" + ID + ".json?v=mwurw54n"); if (!r.ok) throw new Error("http"); const t = await r.text(); JSON.parse(t); try { localStorage.setItem(KEEP, t); } catch (e) {} return JSON.parse(t); }
     catch (e) { const t = localStorage.getItem(KEEP); if (t) return JSON.parse(t); throw e; }
   }
   async function open(f) {
