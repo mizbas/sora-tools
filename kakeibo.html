@@ -33,16 +33,26 @@ body{margin:0;min-height:100vh;background:#F2F4F7;color:var(--ink);font-family:-
 </head>
 <body>
 <div class="load" id="load">読み込んでいます…</div>
-<script src="crypto.js?v=mwu90qe3"></script>
+<script src="crypto.js?v=mwu99icx"></script>
 <script>
 (async function () {
   const ID = "kakeibo", SITE = {"salt":"b8j/k89hxRTcldfUHYJOqA==","iter":200000};
-  const file = () => fetch("tools/" + ID + ".json?v=mwu90qe3").then(r => r.json());
+  // 家計簿の本体（暗号化済み）を取ってくる。通信できないときは、この端末に残しておいた前回の本体を使う
+  const KEEP = "sora.app.kakeibo";
+  async function file() {
+    try { const r = await fetch("tools/" + ID + ".json?v=mwu99icx"); if (!r.ok) throw new Error("http"); const t = await r.text(); JSON.parse(t); try { localStorage.setItem(KEEP, t); } catch (e) {} return JSON.parse(t); }
+    catch (e) { const t = localStorage.getItem(KEEP); if (t) return JSON.parse(t); throw e; }
+  }
   async function open(f) {
     const html = await SoraLock.decryptTool(ID, f || await file());
     document.open(); document.write(html); document.close();
   }
-  if (SoraLock.hasKey(ID)) { try { await open(); return; } catch (e) {} }
+  if (SoraLock.hasKey(ID)) {
+    // 一度開いた端末では、購入コードの画面は出さない。読み込めないときは少し待ってやり直す
+    for (let k = 0; k < 3; k++) { try { await open(); return; } catch (e) { await new Promise(r => setTimeout(r, 800 * (k + 1))); } }
+    document.getElementById("load").innerHTML = `<div style="text-align:center;padding:24px">家計簿を読み込めませんでした。<br>通信できる場所で、もう一度開いてください。<br><br><button type="button" onclick="location.reload()" style="font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 20px;background:#1F5FBF;color:#fff">もう一度読み込む</button></div>`;
+    return;
+  }
   // 購入コードを入れる画面（この家計簿だけ）
   document.body.innerHTML = `<main class="gate">
     <img src="kakeibo-192.png" alt="">

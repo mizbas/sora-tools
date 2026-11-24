@@ -95,6 +95,8 @@ input[type=date].in{font:inherit;font-size:16px;padding:9px 11px;border:1px soli
 .rows{margin-top:6px}
 .row{scroll-margin-top:8px;border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin:8px 0;background:#fff}
 .row .r1{display:grid;grid-template-columns:112px 1fr;gap:8px}
+.row select.ct.empty{color:var(--faint)}
+.row select.ct.need{box-shadow:0 0 0 2px var(--neg)}
 .row select.ct{width:100%;padding-right:26px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235D6878' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;background-size:16px;text-overflow:ellipsis}
 .row .amw{flex:1 1 auto;min-width:110px;display:flex;align-items:center;gap:3px;font-size:13px;color:var(--sub)}
 .row .amw input{flex:1;min-width:0;text-align:right!important;font-weight:700}
@@ -1084,7 +1086,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     F.rows.push(blankRow());
     drawForm();
   }
-  const blankRow = () => ({ id: null, disc: "", uval: "", utype: "", more: false, item: "", cat: F.type === "income" ? (cats("income")[0] || {}).name || "給与" : (P.lastCat || "食費"), amount: "", qty: 1, rate: "", catTouched: false });
+  const blankRow = () => ({ id: null, disc: "", uval: "", utype: "", more: false, item: "", cat: F.type === "income" ? (cats("income")[0] || {}).name || "給与" : "", amount: "", qty: 1, rate: "", catTouched: false });
   function editReceipt(rid) {
     const tx = K.live(S.tx).filter(t => t.rid === rid); if (!tx.length) return;
     F = { rid, type: tx[0].type, date: tx[0].date, shop: tx[0].shop || "", tax: "incl", memo: tx.find(t => t.memo) ? tx.find(t => t.memo).memo : "", rows: tx.map(t => ({ id: t.id, item: t.item, yomi: t.yomi || "", cat: t.cat, amount: Math.round((t.amount + (t.disc || 0)) / (t.qty || 1)), qty: t.qty || 1, rate: "", disc: t.disc || "", uval: t.uval || "", utype: t.utype || "", more: !!(t.disc || t.uval), catTouched: true })) };
@@ -1115,7 +1117,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const taxed = F.type !== "income" && F.tax !== "incl", inc = F.type === "income";
     if (taxed && (r.rate === "" || r.rate == null)) r.rate = catTax(r.cat) || F.tax; if (!taxed) r.rate = "";
     return `<div class="row" data-i="${i}">
-      <div class="r1"><select class="ct" aria-label="カテゴリ">${(() => { const l = cats(F.type).map(c => c.name); if (r.cat && !l.includes(r.cat)) l.unshift(r.cat); return l.map(n => `<option value="${esc(n)}"${n === r.cat ? " selected" : ""}>${esc(n)}</option>`).join(""); })()}</select><input type="text" class="it" placeholder="${inc ? "例：11月分の給料" : "品名（例：牛乳）"}" value="${esc(r.item)}" autocomplete="off" enterkeyhint="next" aria-label="品名"></div>
+      <div class="r1"><select class="ct${r.cat ? "" : " empty"}" aria-label="カテゴリ">${(() => { const l = cats(F.type).map(c => c.name); if (r.cat && !l.includes(r.cat)) l.unshift(r.cat); return (r.cat ? "" : `<option value="" selected disabled>カテゴリ</option>`) + l.map(n => `<option value="${esc(n)}"${n === r.cat ? " selected" : ""}>${esc(n)}</option>`).join(""); })()}</select><input type="text" class="it" placeholder="${inc ? "例：11月分の給料" : "品名（例：牛乳）"}" value="${esc(r.item)}" autocomplete="off" enterkeyhint="next" aria-label="品名"></div>
       <div class="r2">${inc ? "" : `<span class="qw">×<input type="text" class="qty" inputmode="numeric" value="${esc(r.qty)}" aria-label="個数" enterkeyhint="next">個</span>`}<span class="amw"><input type="text" class="am" inputmode="numeric" placeholder="金額" value="${esc(fmtAmt(r.amount))}" enterkeyhint="next" aria-label="金額">円</span>${taxed ? `<select class="rt" aria-label="税率">${[["8", "8%"], ["10", "10%"], ["0", "非課税"]].map(([v, l]) => `<option value="${v}"${String(r.rate) === v ? " selected" : ""}>${l}</option>`).join("")}</select>` : ""}${F.rows.length > 1 ? `<button type="button" class="x" aria-label="この行を削除">×</button>` : ""}</div>
       ${inc ? "" : `<button type="button" class="more">${r.more ? "値引き・容量を閉じる" : "＋ 値引き・容量"}</button>`}
       ${!inc && r.more ? `<div class="r3"><div><label>値引き（円）</label><input type="text" class="dc" inputmode="numeric" value="${esc(fmtAmt(r.disc))}" placeholder="0" enterkeyhint="next"></div><div><label>容量</label><input type="text" class="uv" inputmode="decimal" value="${esc(r.uval || "")}" placeholder="例：1000" enterkeyhint="next"></div><div><label>単位</label><select class="ut">${[["", "なし"], ["g", "g"], ["mL", "mL"], ["個", "個"]].map(([u, l]) => `<option value="${u}"${u === (r.utype || "") ? " selected" : ""}>${l}</option>`).join("")}</select></div></div>` : ""}${inc ? "" : `<div class="upv"></div>`}</div>`;
@@ -1217,10 +1219,10 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   function focusEl(el) { if (!el) return; try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); } if (el.select && el.tagName === "INPUT") el.select(); showField(el); }
   function nextRow(i, c) {
     if (i + 1 < F.rows.length) return focusEl(q(i + 1, c));
-    readRows(); const last = F.rows[i]; appendRow(Object.assign(blankRow(), { cat: last.cat, rate: last.rate })); focusEl(q(i + 1, c));
+    readRows(); const last = F.rows[i]; appendRow(blankRow()); focusEl(q(i + 1, c));
   }
   function setCat(i, name) {
-    const r = F.rows[i]; r.cat = name; r.catTouched = true; const ct = q(i, "ct"); if (ct) { if (![...ct.options].some(o => o.value === name)) ct.add(new Option(name, name), 0); ct.value = name; }
+    const r = F.rows[i]; r.cat = name; r.catTouched = true; const ct = q(i, "ct"); if (ct) { if (![...ct.options].some(o => o.value === name)) ct.add(new Option(name, name), 0); ct.value = name; ct.classList.remove("empty"); }
     const rt = q(i, "rt"); if (rt && F.tax !== "incl") { const v = catTax(name) || F.tax; rt.value = v; r.rate = v; } calcTotal();
   }
   function applyHit(i, hit) {
@@ -1369,7 +1371,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   $("rows").addEventListener("change", e => { if (e.target.classList.contains("ct")) { const i = Number(rowEl(e.target).dataset.i), n = e.target.value.trim(); if (n) setCat(i, n); } calcTotal(); });
   $("rows").addEventListener("click", e => { if (e.target.classList.contains("more")) { readRows(); const r = rowOf(e.target), i = Number(rowEl(e.target).dataset.i); r.more = !r.more; redrawRow(i); if (r.more) focusEl(q(i, "dc")); return; }
     if (e.target.classList.contains("x")) { readRows(); removeRow(Number(rowEl(e.target).dataset.i)); } });
-  $("addRow").onclick = () => { readRows(); const last = F.rows[F.rows.length - 1]; appendRow(Object.assign(blankRow(), last ? { cat: last.cat, rate: last.rate } : {})); focusEl(q(F.rows.length - 1, "it")); };
+  $("addRow").onclick = () => { readRows(); const last = F.rows[F.rows.length - 1]; appendRow(blankRow()); focusEl(q(F.rows.length - 1, "it")); };
   $("modeBtn").onclick = () => { P.mode = P.mode !== "h" ? "h" : "v"; psave(); drawForm(); toast(P.mode !== "h" ? "品名をまとめて入れてから、金額をまとめて入れる順にしました" : "1品ずつ「カテゴリ→品名→個数→金額」の順にしました"); };
   $("inType").onclick = e => { const b = e.target.closest("button"); if (!b || b.dataset.t === F.type) return; readRows(); const keep = { date: F.date, shop: F.shop }; F.type = b.dataset.t; F.rows = [blankRow()]; Object.assign(F, keep); drawForm(); };
   $("inTax").onclick = e => { const b = e.target.closest("button"); if (!b) return; readRows(); F.tax = b.dataset.x; F.taxTouched = true; F.rows.forEach(r => { r.rate = ""; }); P.tax = F.tax; psave(); setTaxUI(); };
@@ -1379,6 +1381,8 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     readRows();
     if (!F.date) { toast("日付を入れてください"); return; }
     const rows = F.rows.filter(r => K.num(r.amount) > 0);
+    const noCat = F.type !== "income" ? F.rows.findIndex(r => K.num(r.amount) > 0 && !r.cat) : -1;
+    if (noCat >= 0) { toast("カテゴリを選んでください"); const ct = q(noCat, "ct"); if (ct) { ct.closest(".row").scrollIntoView({ block: "center" }); ct.classList.add("need"); setTimeout(() => ct.classList.remove("need"), 1600); } return; }
     if (!rows.length) { toast("金額を入れてください"); $("rows").querySelector(".am").focus(); return; }
     const rc = K.receipt(rows, F.type === "income" ? "incl" : F.tax), t = now(), rid = F.rid || K.uid("r");
     rows.forEach(r => { if (!r.cat) r.cat = F.type === "income" ? "その他の収入" : "その他"; if (!cats(F.type).some(c => c.name === r.cat)) { const l = cats(F.type); S.cats.push({ id: K.uid("c"), name: r.cat, type: F.type, color: K.PALETTE[l.length % K.PALETTE.length], order: (l.length ? l[l.length - 1].order : 0) + 1, updatedAt: t }); } });
