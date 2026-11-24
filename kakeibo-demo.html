@@ -151,6 +151,20 @@ table.t th:first-child,table.t td:first-child{text-align:left}
 table.t td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
 .up{color:var(--neg)}.down{color:var(--pos)}
 /* 設定 */
+.cli{border-bottom:1px solid var(--line)}
+.chead{width:100%;font:inherit;display:grid;grid-template-columns:12px 1fr auto 14px;gap:10px;align-items:center;border:0;background:none;padding:12px 2px;cursor:pointer;color:var(--ink);text-align:left}
+.chead::after{content:"›";color:var(--faint);font-size:18px;transition:transform .15s}
+.cli.open .chead::after{transform:rotate(90deg)}
+.chead .dot{display:inline-block;width:12px;height:12px;border-radius:3px}
+.chead .cnm{font-weight:600;font-size:15px}
+.chead .cuse{font-size:12.5px;color:var(--sub)}
+.cedit{padding:0 2px 14px}
+.cedit .lbl:first-child{margin-top:0}
+.sw{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
+.sw button{aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.sw button.on{box-shadow:0 0 0 2px var(--ink)}
+.avgbar{display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--sub);margin:0 0 8px}
+.avgb{display:block;font:inherit;font-size:11.5px;font-weight:600;border:0;background:var(--primary-soft);color:var(--primary);border-radius:999px;padding:2px 8px;margin-top:3px;cursor:pointer}
 .li{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .li:last-child{border-bottom:0}
 .li input[type=color]{width:30px;height:30px;border:0;padding:0;background:none;border-radius:6px}
@@ -338,7 +352,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <button type="button" class="ghostb wide" id="fxAdd">＋ 固定費・サブスクを追加</button>
       <button type="button" class="ghostb wide" id="fxImport" style="display:none">「サブスク管理」のデータを読み込む</button>
     </section>
-    <section class="card"><h2>月の予算</h2><p class="note" style="margin:0 0 4px">カテゴリごとに1か月の予算を入れると、ホームで使いすぎがわかります。0なら予算なし。</p><div id="budgets"></div><p class="note" id="budTotal"></p></section>
+    <section class="card"><h2>月の予算</h2><p class="note" style="margin:0 0 4px">カテゴリごとに1か月の予算を入れると、ホームで使いすぎがわかります。0なら予算なし。</p><div id="budAvgBar"></div><div id="budgets"></div><p class="note" id="budTotal"></p></section>
     <section class="card"><h2>貯金の目標</h2><div id="goals"></div>
       <div class="f2"><div><label class="lbl" for="gName">目標の名前</label><input type="text" id="gName" class="in" placeholder="例：旅行"></div><div><label class="lbl" for="gTarget">目標金額</label><input type="number" id="gTarget" class="in" inputmode="numeric" step="1000" min="0" data-nomoney placeholder="300000"></div></div>
       <label class="lbl" for="gDead">いつまでに（なくても大丈夫）</label><input type="month" id="gDead" class="in" style="font:inherit;font-size:16px;padding:9px 11px;border:0;border-radius:var(--r-sm);background:var(--fill)">
@@ -507,6 +521,17 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
         if (!p || p.date <= t.date) items[k] = Object.assign({ item: t.item, type: t.type, cat: t.cat, unit: Math.round(t.amount / (t.qty || 1)), date: t.date, n: (p ? p.n : 0) + 1, shops: sh }, t.uval ? { uval: t.uval, utype: t.utype } : {}); else { p.n++; p.shops = sh; } }
     });
     return { shops: Object.keys(shopN).sort((a, b) => shopN[b] - shopN[a]), items: Object.values(items).sort((a, b) => b.n - a.n) };
+  }
+  // 予算の目安：今月より前のn か月の、カテゴリごとの1か月あたりの支出（記録がある月だけで割る・100円単位）
+  function catAvg(s, ym, n) {
+    const months = []; for (let k = 1; k <= (n || 3); k++) months.push(addYm(ym, -k));
+    const idx = {}; months.forEach(m => { idx[m] = 1; });
+    const sum = {}, used = {};
+    live(s.tx).forEach(t => { const m = ymOf(t.date); if (!idx[m]) return; used[m] = 1; if (t.type === "income") return; sum[t.cat] = (sum[t.cat] || 0) + t.amount; });
+    const nm = Object.keys(used).length, out = {};
+    if (!nm) return { months: 0, avg: out };
+    Object.keys(sum).forEach(c => { out[c] = Math.round(sum[c] / nm / 100) * 100; });
+    return { months: nm, avg: out };
   }
   // 品名の候補の並び順：今のお店でよく買うもの → 名前の先頭が合うもの → よく買うもの → 最近買ったもの
   function rankItems(items, q, opt) {
@@ -764,7 +789,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -1414,7 +1439,13 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   $("byName").onchange = e => { P.name = e.target.value.trim(); psave(); toast("名前を保存しました"); };
   function renderSet() {
     const bud = {}; K.live(S.budgets).forEach(b => { bud[b.cat] = b.amount; });
-    $("budgets").innerHTML = cats("expense").map(c => `<div class="bud"><span class="dot" style="background:${c.color}"></span><span>${esc(c.name)}</span><input type="number" inputmode="numeric" min="0" step="1000" data-nomoney data-bud="${esc(c.name)}" value="${bud[c.name] || ""}" placeholder="0"></div>`).join("");
+    const av = K.catAvg(S, today().slice(0, 7), 3);
+    $("budAvgBar").innerHTML = av.months ? `<div class="avgbar"><span>右下の小さい数字は、${av.months === 3 ? "過去3か月" : `過去${av.months}か月`}の1か月あたりの支出です。押すとその金額が入ります。</span><button type="button" class="ghostb" id="budAllAvg">空いている予算に平均を入れる</button></div>` : "";
+    $("budgets").innerHTML = cats("expense").map(c => { const a = av.avg[c.name] || 0; return `<div class="bud"><span class="dot" style="background:${c.color}"></span><span>${esc(c.name)}${a ? `<button type="button" class="avgb" data-avg="${a}" data-cat="${esc(c.name)}">平均 ${yen(a)}</button>` : ""}</span><input type="number" inputmode="numeric" min="0" step="1000" data-nomoney data-bud="${esc(c.name)}" value="${bud[c.name] || ""}" placeholder="${a ? a : 0}"></div>`; }).join("");
+    if ($("budAllAvg")) $("budAllAvg").onclick = () => {
+      const t = now(); let n = 0; cats("expense").forEach(c => { const a = av.avg[c.name]; if (!a || bud[c.name]) return; const id = "b_" + c.name, b = S.budgets.find(x => x.id === id); if (b) Object.assign(b, { amount: a, del: false, updatedAt: t }); else S.budgets.push({ id, cat: c.name, amount: a, updatedAt: t }); n++; });
+      if (!n) { toast("空いている予算はありません"); return; } changed(); toast(`${n}つのカテゴリに平均を入れました`);
+    };
     const bt = Object.values(bud).reduce((a, b) => a + (b || 0), 0); $("budTotal").textContent = bt ? "予算の合計：" + yen(bt) + "／月" : "";
     const g = K.live(S.goals);
     $("goals").innerHTML = g.length ? g.map(x => { const r = K.goal(x, today().slice(0, 7)); return `<div class="goal" data-g="${esc(x.id)}"><div class="top"><span>${esc(x.name)}</span><span>${r.pct}%</span></div><div class="tr"><i style="width:${r.pct}%"></i></div>
@@ -1422,12 +1453,32 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <div class="act"><input type="number" inputmode="numeric" min="0" step="1000" data-nomoney placeholder="貯めた金額"><button type="button" class="ghostb" data-ga="add">足す</button><button type="button" class="ghostb neg" data-ga="del">削除</button></div></div>`; }).join("") : `<p class="empty">旅行や車の買い替えなど、目標を決めて貯めた金額を記録できます。</p>`;
     const cl = cats(cType), use = {}; K.live(S.tx).forEach(t => { if (t.type === cType) use[t.cat] = (use[t.cat] || 0) + 1; });
     $("cType").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.t === cType));
-    $("catList").innerHTML = cl.map((c, i) => `<div class="li" data-c="${esc(c.id)}"><input type="color" value="${c.color}" aria-label="色"><input type="text" class="in cn" value="${esc(c.name)}" aria-label="名前"><div class="ops">${cType === "expense" ? `<select class="ctax" aria-label="税抜で入れるときの税率" style="width:64px;font-size:12.5px;padding:5px 2px">${[["", "税率"], ["8", "8%"], ["10", "10%"], ["0", "非課税"]].map(([v, l]) => `<option value="${v}"${String(c.tax || "") === v ? " selected" : ""}>${l}</option>`).join("")}</select>` : ""}<button type="button" data-ca="up"${i ? "" : " disabled"} aria-label="上へ">↑</button><button type="button" data-ca="dn"${i < cl.length - 1 ? "" : " disabled"} aria-label="下へ">↓</button><button type="button" class="del" data-ca="del">削除</button></div></div>`).join("");
+    const unused = cl.filter(c => !use[c.name]);
+    $("catList").innerHTML = cl.map((c, i) => `<div class="cli${catOpen === c.id ? " open" : ""}" data-c="${esc(c.id)}">
+      <button type="button" class="chead" data-ca="toggle"><span class="dot" style="background:${c.color}"></span><span class="cnm">${esc(c.name)}</span><span class="cuse">${use[c.name] ? use[c.name].toLocaleString("ja-JP") + "件" : "記録なし"}${c.tax ? `・税抜${c.tax === "0" ? "非課税" : c.tax + "%"}` : ""}</span></button>
+      ${catOpen === c.id ? `<div class="cedit">
+        <label class="lbl">名前</label><input type="text" class="in cn" value="${esc(c.name)}" aria-label="名前">
+        <label class="lbl">色</label><div class="sw">${K.PALETTE.map(col => `<button type="button" data-col="${col}" style="background:${col}"${col.toLowerCase() === String(c.color).toLowerCase() ? ' class="on" aria-pressed="true"' : ""} aria-label="この色にする"></button>`).join("")}</div>
+        ${cType === "expense" ? `<label class="lbl">税抜で入れるときの税率</label><select class="ctax in">${[["", "入力画面の設定に合わせる"], ["8", "8%（食品など）"], ["10", "10%"], ["0", "非課税"]].map(([v, l]) => `<option value="${v}"${String(c.tax || "") === v ? " selected" : ""}>${l}</option>`).join("")}</select>` : ""}
+        <label class="lbl">並び順</label><div class="sub2"><button type="button" class="ghostb" data-ca="up"${i ? "" : " disabled"} style="flex:1">↑ 上へ</button><button type="button" class="ghostb" data-ca="dn"${i < cl.length - 1 ? "" : " disabled"} style="flex:1">↓ 下へ</button></div>
+        ${cl.length > 1 ? `<label class="lbl">ほかのカテゴリとまとめる</label><select class="cmerge in"><option value="">まとめない</option>${cl.filter(x => x.id !== c.id).map(x => `<option value="${esc(x.name)}">「${esc(x.name)}」にまとめる</option>`).join("")}</select>` : ""}
+        <button type="button" class="ghostb neg wide" data-ca="del" style="margin-top:10px">このカテゴリを削除</button></div>` : ""}</div>`).join("")
+      + (unused.length ? `<button type="button" class="ghostb wide" id="catClean" style="margin-top:10px">記録のないカテゴリを片付ける（${unused.length}つ）</button>` : "");
+    if ($("catClean")) $("catClean").onclick = () => {
+      if (!confirm(`記録が1件もない次のカテゴリを削除しますか？\n${unused.map(c => c.name).join("、")}\n（予算を入れていたものは予算も消えます）`)) return;
+      const t = now(); unused.forEach(c => { Object.assign(c, { del: true, updatedAt: t }); const b = S.budgets.find(x => x.id === "b_" + c.name && !x.del); if (b) Object.assign(b, { del: true, updatedAt: t }); });
+      catOpen = null; changed(); toast(`${unused.length}つのカテゴリを片付けました`);
+    };
     $("catList").dataset.use = JSON.stringify(use);
     $("rCat").innerHTML = catOpts("expense") + `<optgroup label="収入">${catOpts("income")}</optgroup>`;
     const rl = K.live(S.rules);
     $("rules").innerHTML = rl.length ? rl.map(r => `<div class="li" data-r="${esc(r.id)}"><span></span><span>「${esc(r.kw)}」→ ${esc(r.cat)}</span><div class="ops"><button type="button" class="del" data-ra="del">削除</button></div></div>`).join("") : `<p class="empty">まだルールはありません。</p>`;
   }
+  $("budgets").addEventListener("click", e => {
+    const b = e.target.closest(".avgb"); if (!b) return; const c = b.dataset.cat, v = Number(b.dataset.avg), id = "b_" + c, x = S.budgets.find(y => y.id === id);
+    if (x) Object.assign(x, { amount: v, del: false, updatedAt: now() }); else S.budgets.push({ id, cat: c, amount: v, updatedAt: now() });
+    changed(); toast(`${c}の予算を${yen(v)}にしました`);
+  });
   $("budgets").addEventListener("change", e => {
     const c = e.target.dataset.bud; if (!c) return; const v = Math.max(0, Math.round(K.num(e.target.value))), id = "b_" + c;
     const b = S.budgets.find(x => x.id === id); if (b) Object.assign(b, { amount: v, del: false, updatedAt: now() }); else S.budgets.push({ id, cat: c, amount: v, updatedAt: now() });
@@ -1446,9 +1497,20 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     Object.assign(g, { saved: Math.max(0, K.num(g.saved) + v), updatedAt: now() }); changed(); toast(yen(v) + "を足しました");
   });
   $("cType").onclick = e => { const b = e.target.closest("button"); if (b) { cType = b.dataset.t; renderSet(); } };
+  let catOpen = null;
+  // カテゴリcを、名前がtoのカテゴリにまとめる（記録・ルール・予算を移して、cは消す）
+  function mergeCat(c, to) {
+    if (!confirm(`「${c.name}」を「${to}」にまとめますか？\n「${c.name}」の記録はすべて「${to}」になり、「${c.name}」は一覧から消えます。`)) { renderSet(); return; }
+    const t = now(); let n = 0;
+    S.tx.forEach(x => { if (!x.del && x.type === c.type && x.cat === c.name) { Object.assign(x, { cat: to, updatedAt: t }); n++; } });
+    S.rules.forEach(x => { if (!x.del && x.cat === c.name) Object.assign(x, { cat: to, updatedAt: t }); });
+    if (c.type === "expense") { const b = S.budgets.find(x => x.id === "b_" + c.name && !x.del), b2 = S.budgets.find(x => x.id === "b_" + to && !x.del); if (b) { Object.assign(b, { del: true, updatedAt: t }); if (b.amount) { if (b2) Object.assign(b2, { amount: (b2.amount || 0) + b.amount, updatedAt: t }); else S.budgets.push({ id: "b_" + to, cat: to, amount: b.amount, updatedAt: t }); } } }
+    Object.assign(c, { del: true, updatedAt: t }); catOpen = null; changed(); toast(`${n}件を「${to}」にまとめました`);
+  }
   $("catList").addEventListener("change", e => {
-    const li = e.target.closest(".li"), c = S.cats.find(x => x.id === li.dataset.c), t = now(); if (!c) return;
+    const li = e.target.closest(".cli,.li"), c = S.cats.find(x => x.id === li.dataset.c), t = now(); if (!c) return;
     if (e.target.type === "color") { Object.assign(c, { color: e.target.value, updatedAt: t }); }
+    else if (e.target.classList.contains("cmerge")) { const to = e.target.value; if (!to) return; mergeCat(c, to); return; }
     else if (e.target.classList.contains("ctax")) { Object.assign(c, { tax: e.target.value, updatedAt: t }); toast(e.target.value ? `「${c.name}」は税抜入力のとき${e.target.value === "0" ? "非課税" : e.target.value + "%"}になります` : "税率は入力画面の設定に合わせます"); }
     else { const nn = e.target.value.trim(); if (!nn || nn === c.name) { e.target.value = c.name; return; } const same = cats(c.type).find(x => x.name === nn && x.id !== c.id);
       if (same) { if (!confirm(`「${c.name}」を「${nn}」にまとめますか？\n「${c.name}」の記録はすべて「${nn}」になり、「${c.name}」は一覧から消えます。`)) { e.target.value = c.name; return; }
@@ -1462,7 +1524,11 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     changed();
   });
   $("catList").addEventListener("click", e => {
-    const a = e.target.dataset.ca; if (!a) return; const li = e.target.closest(".li"), list = cats(cType), i = list.findIndex(x => x.id === li.dataset.c), c = list[i], t = now();
+    const sw = e.target.closest("[data-col]");
+    if (sw) { const c = S.cats.find(x => x.id === sw.closest(".cli").dataset.c); if (c) { Object.assign(c, { color: sw.dataset.col, updatedAt: now() }); changed(); } return; }
+    const btn = e.target.closest("[data-ca]"); if (!btn) return; const a = btn.dataset.ca;
+    const li = btn.closest(".cli,.li"), list = cats(cType), i = list.findIndex(x => x.id === li.dataset.c), c = list[i], t = now();
+    if (a === "toggle") { catOpen = catOpen === c.id ? null : c.id; renderSet(); return; }
     if (a === "del") { const n = JSON.parse($("catList").dataset.use || "{}")[c.name] || 0; if (!confirm(`「${c.name}」を削除しますか？${n ? `\nこのカテゴリの記録${n}件は消えずに残ります（カテゴリ名もそのまま）。` : ""}`)) return; Object.assign(c, { del: true, updatedAt: t }); }
     else { const j = a === "up" ? i - 1 : i + 1; if (j < 0 || j >= list.length) return; list.splice(j, 0, list.splice(i, 1)[0]); list.forEach((x, k) => { if (x.order !== k + (cType === "income" ? 100 : 0)) Object.assign(x, { order: k + (cType === "income" ? 100 : 0), updatedAt: t }); }); }
     changed();
