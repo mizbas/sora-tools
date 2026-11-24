@@ -163,6 +163,7 @@ table.t td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
 .sw{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
 .sw button{aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
 .sw button.on{box-shadow:0 0 0 2px var(--ink)}
+.bud.stx{grid-template-columns:1fr 130px}
 .avgbar{display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--sub);margin:0 0 8px}
 .avgb{display:block;font:inherit;font-size:11.5px;font-weight:600;border:0;background:var(--primary-soft);color:var(--primary);border-radius:999px;padding:2px 8px;margin-top:3px;cursor:pointer}
 .li{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -366,6 +367,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <details class="fold"><summary>自動で分けるルール</summary><p class="note" style="margin:4px 0">明細の内容にこの言葉が入っていたら、このカテゴリにします。取り込みのときにカテゴリを直すと自動で増えます。</p><div id="rules"></div>
         <div class="f2" style="margin-top:6px"><input type="text" id="rKw" class="in" placeholder="例：ENEOS"><select id="rCat" class="in"></select></div><button type="button" class="ghostb wide" id="rAdd">ルールを追加</button></details>
     </section>
+    <section class="card"><h2>お店ごとの税込・税抜</h2><p class="note" style="margin:0 0 4px">入力でお店を選んだときの「金額の入れ方」です。「自動」は、そのお店で前回入れたのと同じにします。決めておくと、いつもその入れ方で始まります。</p><div id="shopTaxList"></div></section>
     <section class="card"><h2>カテゴリ</h2><div class="seg full" id="cType" style="margin-bottom:6px"><button type="button" data-t="expense" class="on">支出</button><button type="button" data-t="income">収入</button></div><p class="note" style="margin:0 0 4px">名前を書き換えると、過去の記録も変わります。ほかのカテゴリと同じ名前にすると、1つにまとまります。</p><div id="catList"></div>
       <div class="f2" style="margin-top:8px"><input type="text" id="cName" class="in" placeholder="新しいカテゴリ"><button type="button" class="ghostb" id="cAdd">追加</button></div></section>
     <section class="card"><h2>バックアップ</h2>
@@ -523,8 +525,11 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return { shops: Object.keys(shopN).sort((a, b) => shopN[b] - shopN[a]), items: Object.values(items).sort((a, b) => b.n - a.n) };
   }
   // お店ごとの「金額の入れ方」：そのお店で最後に入れたレシートの入れ方（tm：8/10＝税抜、i＝税込）
+  // 設定画面で決めたお店の入れ方（カテゴリの一覧に type:"shop" として入れて、家族の端末にも同期する）
+  const shopSetting = (s, shop) => { const key = String(shop || "").trim(); return live(s.cats).find(c => c.type === "shop" && c.name === key && c.tax) || null; };
   function shopTax(s, shop) {
     const key = String(shop || "").trim(); if (!key) return null;
+    const fixed = shopSetting(s, key); if (fixed) return String(fixed.tax);
     // 入れ方を記録していない古い記録（元の家計簿から取り込んだもの・この機能より前のもの）は数えない
     let best = null; live(s.tx).forEach(t => { if (t.type === "income" || !t.tm || String(t.shop || "").trim() !== key) return; if (!best || t.date > best.date || (t.date === best.date && (t.updatedAt || 0) > (best.updatedAt || 0))) best = t; });
     return best ? (best.tm === "i" ? "incl" : String(best.tm)) : null;
@@ -796,7 +801,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, shopSetting, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -1317,7 +1322,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     if (!F || F.rid || F.type === "income" || F.taxTouched) return;
     const m = K.shopTax(S, $("inShop").value); if (!m || m === String(F.tax)) return;
     readRows(); F.tax = m; F.rows.forEach(r => { r.rate = ""; }); setTaxUI();
-    toast(`${$("inShop").value.trim()}は前回と同じ「${m === "incl" ? "税込" : "税抜 " + m + "%"}」にしました`);
+    toast(`${$("inShop").value.trim()}は${K.shopSetting(S, $("inShop").value) ? "お店の設定どおり" : "前回と同じ"}「${m === "incl" ? "税込" : "税抜 " + m + "%"}」にしました`);
   }
   $("inShop").addEventListener("change", applyShopTax);
   $("rows").addEventListener("input", e => {
@@ -1490,6 +1495,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <div class="act"><input type="number" inputmode="numeric" min="0" step="1000" data-nomoney placeholder="貯めた金額"><button type="button" class="ghostb" data-ga="add">足す</button><button type="button" class="ghostb neg" data-ga="del">削除</button></div></div>`; }).join("") : `<p class="empty">旅行や車の買い替えなど、目標を決めて貯めた金額を記録できます。</p>`;
     const cl = cats(cType), use = {}; K.live(S.tx).forEach(t => { if (t.type === cType) use[t.cat] = (use[t.cat] || 0) + 1; });
     $("cType").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.t === cType));
+    drawShopTax();
     const unused = cl.filter(c => !use[c.name]);
     $("catList").innerHTML = cl.map((c, i) => `<div class="cli${catOpen === c.id ? " open" : ""}" data-c="${esc(c.id)}">
       <button type="button" class="chead" data-ca="toggle"><span class="dot" style="background:${c.color}"></span><span class="cnm">${esc(c.name)}</span><span class="cuse">${use[c.name] ? use[c.name].toLocaleString("ja-JP") + "件" : "記録なし"}${c.tax ? `・税抜${c.tax === "0" ? "非課税" : c.tax + "%"}` : ""}</span></button>
@@ -1534,7 +1540,25 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     Object.assign(g, { saved: Math.max(0, K.num(g.saved) + v), updatedAt: now() }); changed(); toast(yen(v) + "を足しました");
   });
   $("cType").onclick = e => { const b = e.target.closest("button"); if (b) { cType = b.dataset.t; renderSet(); } };
-  let catOpen = null;
+  let catOpen = null, shopTaxAll = false;
+  const TAXL = { incl: "税込", "8": "税抜 8%", "10": "税抜 10%" };
+  function drawShopTax() {
+    const box = $("shopTaxList"); if (!box) return;
+    const exp = {}; K.live(S.tx).forEach(t => { if (t.type !== "income" && t.shop && !t.auto) exp[t.shop] = 1; });
+    const list = K.suggest(S).shops.filter(x => exp[x]), show = shopTaxAll ? list : list.slice(0, 12);
+    box.innerHTML = list.length ? show.map(sh => { const fx = K.shopSetting(S, sh), learned = (() => { const t = K.shopTax(Object.assign({}, S, { cats: K.live(S.cats).filter(c => c.type !== "shop") }), sh); return t ? TAXL[t] : ""; })();
+      return `<div class="bud stx"><span>${esc(sh)}${!fx && learned ? `<small style="display:block;color:var(--sub);font-size:11.5px">前回：${learned}</small>` : ""}</span><select data-shoptax="${esc(sh)}" style="width:130px">${[["", "自動"], ["incl", "税込"], ["8", "税抜 8%"], ["10", "税抜 10%"]].map(([v, l]) => `<option value="${v}"${(fx ? String(fx.tax) : "") === v ? " selected" : ""}>${l}</option>`).join("")}</select></div>`; }).join("")
+      + (list.length > 12 ? `<button type="button" class="ghostb wide" id="shopTaxMore" style="margin-top:8px">${shopTaxAll ? "よく行くお店だけ表示" : `すべてのお店を表示（${list.length}店）`}</button>` : "")
+      : `<p class="empty">お店の名前を入れて登録すると、ここに出てきます。</p>`;
+    if ($("shopTaxMore")) $("shopTaxMore").onclick = () => { shopTaxAll = !shopTaxAll; drawShopTax(); };
+  }
+  document.addEventListener("change", e => {
+    const sh = e.target.dataset && e.target.dataset.shoptax; if (sh === undefined) return;
+    const v = e.target.value, id = "sh_" + sh, ex = S.cats.find(c => c.id === id), t = now();
+    if (v) { if (ex) Object.assign(ex, { tax: v, del: false, updatedAt: t }); else S.cats.push({ id, type: "shop", name: sh, tax: v, updatedAt: t }); }
+    else if (ex) Object.assign(ex, { del: true, updatedAt: t });
+    changed(); toast(v ? `${sh}はいつも「${TAXL[v]}」で始めます` : `${sh}は前回の入れ方に合わせます`);
+  });
   // カテゴリcを、名前がtoのカテゴリにまとめる（記録・ルール・予算を移して、cは消す）
   function mergeCat(c, to) {
     if (!confirm(`「${c.name}」を「${to}」にまとめますか？\n「${c.name}」の記録はすべて「${to}」になり、「${c.name}」は一覧から消えます。`)) { renderSet(); return; }
