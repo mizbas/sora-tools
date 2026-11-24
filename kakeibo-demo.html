@@ -1358,7 +1358,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const blob = new Blob([K.toCSV(S)], { type: "text/csv" }), a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "kakeibo-" + today() + ".csv"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   };
-  $("wipe").onclick = () => { if (!confirm("この端末の家計簿をすべて消します。よろしいですか？")) return; S = K.norm(null); D = {}; dsave(); F = null; changed(); toast("消しました"); go("home"); };
+  $("wipe").onclick = () => { if (!confirm("この端末の家計簿をすべて消します。よろしいですか？")) return; S = K.norm(null); D = {}; dsave(); try { localStorage.removeItem("sora.kakeibo.gtoken"); } catch (e) {} F = null; changed(); toast("消しました"); go("home"); };
 
   let D = {}; const dsave = () => {}; function drawDrive() {} function autoSync() {}
   function renderAll() {
