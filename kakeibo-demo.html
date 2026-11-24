@@ -153,6 +153,12 @@ table.t th:first-child,table.t td:first-child{text-align:left}
 table.t td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
 .up{color:var(--neg)}.down{color:var(--pos)}
 /* 設定 */
+#v-set > section.card{padding-top:4px;padding-bottom:4px}
+.fhead{width:100%;font:inherit;font-size:16px;font-weight:700;color:var(--ink);background:none;border:0;padding:12px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;cursor:pointer}
+.fhead::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);transform:rotate(45deg);margin:0 4px 4px 0;transition:transform .15s}
+section.fopen>.fhead::after{transform:rotate(-135deg);margin-bottom:-4px}
+section.card>.fbody{display:none;padding-bottom:12px}
+section.card.fopen>.fbody{display:block}
 .cli{border-bottom:1px solid var(--line)}
 .chead{width:100%;font:inherit;display:grid;grid-template-columns:12px 1fr auto 14px;gap:10px;align-items:center;border:0;background:none;padding:12px 2px;cursor:pointer;color:var(--ink);text-align:left}
 .chead::after{content:"›";color:var(--faint);font-size:18px;transition:transform .15s}
@@ -552,6 +558,31 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   // 読みとして使える文字（ひらがな・カタカナ・長音）だけか
   const isKana = x => /^[\u3041-\u3096\u30a1-\u30fa\u30fc\u3000\s]+$/.test(String(x || ""));
   const toHira = x => String(x || "").replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  // 入力欄の文字の変わり方から読みを追う（キーボードの種類によらず使える）
+  // st = { v: 前の文字, R: 1文字ごとの読み（漢字は先頭の字にまとめて読み、ほかは ""。分からない字は null）}
+  // 数字・英字・記号は、そのまま読みとして使える
+  const plain = c => /^[\x20-\x7e\uff10-\uff19\uff21-\uff3a\uff41-\uff5a]$/.test(c);
+  const known = c => isKana(c) || plain(c);
+  function yomiTrack(st, nv) {
+    const ov = st && st.v != null ? st.v : "", R0 = st && st.R ? st.R : Array.from(ov).map(c => (known(c) ? c : null));
+    const o = Array.from(ov), n = Array.from(String(nv || ""));
+    let p = 0; while (p < o.length && p < n.length && o[p] === n[p]) p++;
+    let q = 0; while (q < o.length - p && q < n.length - p && o[o.length - 1 - q] === n[n.length - 1 - q]) q++;
+    const removed = R0.slice(p, o.length - q), ins = n.slice(p, n.length - q);
+    let mid;
+    // 入った字がかな・英数字だけならそのまま。漢字に変わったときは、消えたかなの読みをまとめて先頭の字に付ける
+    const rr = removed.length && removed.every(x => x !== null) ? removed.join("") : "";
+    if (ins.every(known)) mid = ins.slice();
+    else if (rr) mid = ins.map((c, i) => (i === 0 ? rr : ""));
+    else mid = ins.map(c => (known(c) ? c : null));
+    return { v: n.join(""), R: R0.slice(0, p).concat(mid, R0.slice(o.length - q)) };
+  }
+  // 追った読みを1つの文字にする（分からない字があれば ""、全部かなの品名も ""）
+  function yomiOf(st) {
+    if (!st || !st.R || !st.v || Array.from(st.v).every(known) || st.R.some(x => x === null)) return "";
+    const y = toHira(st.R.join("")).replace(/[\s\u3000]/g, ""); return /[\u3041-\u3096]/.test(y) ? y : "";
+  }
+  const yomiInit = (v, yomi) => { const a = Array.from(String(v || "")); return { v: a.join(""), R: yomi && a.length ? a.map((c, i) => (i === 0 ? yomi : "")) : a.map(c => (known(c) ? c : null)) }; };
   // 品名の候補の並び順：今のお店でよく買うもの → 名前の先頭が合うもの → よく買うもの → 最近買ったもの
   function rankItems(items, q, opt) {
     const o = opt || {}, t = normName(q); if (!t) return [];
@@ -809,7 +840,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, shopSetting, isKana, toHira, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, shopSetting, isKana, toHira, yomiTrack, yomiOf, yomiInit, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -1226,7 +1257,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const rt = q(i, "rt"); if (rt && F.tax !== "incl") { const v = catTax(name) || F.tax; rt.value = v; r.rate = v; } calcTotal();
   }
   function applyHit(i, hit) {
-    readRows(); const r = F.rows[i]; r.item = hit.item; r.yomi = hit.yomi || r.yomi || ""; q(i, "it").value = hit.item; const itEl = q(i, "it"); if (itEl) yomiState.set(itEl, { acc: r.yomi, cur: "" });
+    readRows(); const r = F.rows[i]; r.item = hit.item; const itEl = q(i, "it"); if (itEl) { const st = K.yomiTrack(yomiState.get(itEl) || K.yomiInit(itEl.value, r.yomi), hit.item); r.yomi = hit.yomi || K.yomiOf(st) || ""; yomiState.set(itEl, K.yomiInit(hit.item, r.yomi)); } q(i, "it").value = hit.item;
     if (!r.catTouched) setCat(i, hit.cat), r.catTouched = false;
     // 値段と容量は自動で入れない（その日の値段を自分で入れる）。カテゴリだけ前回に合わせる
     calcTotal();
@@ -1338,19 +1369,13 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   $("inShop").addEventListener("input", e => suggestFor(e.target));
   // 品名を漢字に変換する前のひらがなを拾って「読み」として覚える（次から、ひらがなで探せる）
   const yomiState = new WeakMap();
-  const yst = el => { let st = yomiState.get(el); if (!st) { st = { acc: "", cur: "" }; yomiState.set(el, st); } return st; };
-  const setYomi = (el, acc) => { const r = rowEl(el) && rowOf(el); if (r) r.yomi = K.toHira(acc).replace(/\s/g, ""); };
-  $("rows").addEventListener("compositionstart", e => { if (e.target.classList.contains("it")) yst(e.target).cur = ""; });
-  $("rows").addEventListener("compositionupdate", e => { if (!e.target.classList.contains("it")) return; if (e.data && K.isKana(e.data)) yst(e.target).cur = e.data; });
-  $("rows").addEventListener("compositionend", e => {
-    const el = e.target; if (!el.classList.contains("it")) return; const st = yst(el), d = e.data || "";
-    st.acc += K.isKana(d) ? d : st.cur; st.cur = ""; setYomi(el, st.acc);
-  });
+  // 品名の欄の文字が変わるたびに、前の文字との違いから読みを追う（キーボードの種類によらず使える）
+  const yst = el => { let st = yomiState.get(el); if (!st) { const r = rowEl(el) && rowOf(el); st = K.yomiInit(el.value, r && r.yomi); yomiState.set(el, st); } return st; };
+  $("rows").addEventListener("focusin", e => { if (e.target.classList && e.target.classList.contains("it")) yst(e.target); });
   $("rows").addEventListener("input", e => {
-    const el = e.target; if (!el.classList || !el.classList.contains("it")) return; const st = yst(el);
-    if (!el.value) { st.acc = ""; st.cur = ""; setYomi(el, ""); return; }
-    // 変換を使わずに入ったかな（キーボードによる）も読みに足す
-    if (!e.isComposing && e.inputType === "insertText" && e.data && K.isKana(e.data)) { st.acc += e.data; setYomi(el, st.acc); }
+    const el = e.target; if (!el.classList || !el.classList.contains("it")) return;
+    const st = K.yomiTrack(yst(el), el.value); yomiState.set(el, st);
+    const r = rowEl(el) && rowOf(el); if (r) r.yomi = K.yomiOf(st);
   });
   // お店を入れたら、そのお店で前回使った「金額の入れ方（税込・税抜）」に合わせる
   function applyShopTax() {
@@ -1388,7 +1413,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     rows.forEach(r => { if (!r.cat) r.cat = F.type === "income" ? "その他の収入" : "その他"; if (!cats(F.type).some(c => c.name === r.cat)) { const l = cats(F.type); S.cats.push({ id: K.uid("c"), name: r.cat, type: F.type, color: K.PALETTE[l.length % K.PALETTE.length], order: (l.length ? l[l.length - 1].order : 0) + 1, updatedAt: t }); } });
     const keep = {};
     rows.forEach((r, i) => {
-      const o = { type: F.type, date: F.date, shop: F.shop, rid, item: r.item, cat: r.cat, qty: r.qty || 1, amount: rc.incl[i], memo: i === 0 ? F.memo : "", disc: Math.round(Math.abs(K.num(r.disc))) || 0, uval: K.num(r.uval) > 0 && r.utype ? K.num(r.uval) : 0, utype: K.num(r.uval) > 0 && r.utype ? r.utype : "", tm: F.type === "income" ? "" : F.rid && r.id ? ((S.tx.find(x => x.id === r.id) || {}).tm || "") : F.tax === "incl" ? "i" : String(F.tax), yomi: r.item && r.yomi && !K.isKana(r.item) ? r.yomi : "", updatedAt: t };
+      const o = { type: F.type, date: F.date, shop: F.shop, rid, item: r.item, cat: r.cat, qty: r.qty || 1, amount: rc.incl[i], memo: i === 0 ? F.memo : "", disc: Math.round(Math.abs(K.num(r.disc))) || 0, uval: K.num(r.uval) > 0 && r.utype ? K.num(r.uval) : 0, utype: K.num(r.uval) > 0 && r.utype ? r.utype : "", tm: F.type === "income" ? "" : F.rid && r.id ? ((S.tx.find(x => x.id === r.id) || {}).tm || "") : F.tax === "incl" ? "i" : String(F.tax), yomi: r.item && r.yomi ? r.yomi : "", updatedAt: t };
       const ex = r.id && S.tx.find(x => x.id === r.id);
       if (ex) { Object.assign(ex, o); keep[ex.id] = 1; } else { const id = K.uid("t"); S.tx.push(Object.assign({ id, by: P.name || "", createdAt: t }, o)); keep[id] = 1; }
     });
@@ -1590,7 +1615,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   document.addEventListener("input", e => { if (e.target.id === "yomiQ") drawYomi(); });
   document.addEventListener("change", e => {
     const it = e.target.dataset && e.target.dataset.yomi; if (it === undefined) return;
-    const y = K.toHira(e.target.value.trim()).replace(/\s/g, ""); if (y && !K.isKana(y)) { toast("読みは、ひらがなで入れてください"); return; }
+    const y = K.toHira(e.target.value.trim()).replace(/\s/g, ""); if (y && !/^[\u3041-\u3096\u30fc0-9A-Za-z.\-]+$/.test(y)) { toast("読みは、ひらがなで入れてください"); return; }
     const t = now(); let n = 0; S.tx.forEach(x => { if (!x.del && x.item === it && (x.yomi || "") !== y) { x.yomi = y; x.updatedAt = t; n++; } });
     if (n) { changed(); toast(y ? `「${it}」の読みを「${y}」にしました` : `「${it}」の読みを消しました`); }
   });
@@ -1781,6 +1806,20 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   newForm(); F = null;
   try { history.replaceState({ v: "home", ym, rp: "trend", y: 0 }, ""); } catch (e) {}
   drawDrive(); renderAll(); setTimeout(runAuto, 600);
+  // 設定画面：見出しを押すと開く（よく使う「Googleドライブ」だけ最初から開いておく）
+  function foldSettings() {
+    const OPEN = "sora.kakeibo.setopen"; let open = {}; try { open = JSON.parse(sessionStorage.getItem(OPEN) || "{}"); } catch (e) {}
+    document.querySelectorAll("#v-set > section.card").forEach((sec, i) => {
+      const h = sec.querySelector(":scope > h2"); if (!h || sec.dataset.fold) return; sec.dataset.fold = "1";
+      const key = h.textContent.trim().slice(0, 12), body = document.createElement("div"); body.className = "fbody";
+      [...sec.childNodes].forEach(n => { if (n !== h) body.appendChild(n); }); sec.appendChild(body);
+      const b = document.createElement("button"); b.type = "button"; b.className = "fhead"; b.innerHTML = h.innerHTML; b.setAttribute("aria-expanded", "false"); h.replaceWith(b);
+      const set = on => { sec.classList.toggle("fopen", on); b.setAttribute("aria-expanded", on ? "true" : "false"); };
+      set(open[key] != null ? open[key] : i === 0);
+      b.onclick = () => { const on = !sec.classList.contains("fopen"); set(on); open[key] = on; try { sessionStorage.setItem(OPEN, JSON.stringify(open)); } catch (e) {} };
+    });
+  }
+  setTimeout(foldSettings, 0);
   if (DEMO) {
     document.title = "わが家の家計簿 お試し版（無料）｜そらのツール箱";
     const ban = document.createElement("div"); ban.className = "demo";
@@ -1788,6 +1827,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     document.querySelector(".wrap header").after(ban);
     const off = (id, what) => { const sec = $(id) && $(id).closest("section.card"); if (!sec) return; [...sec.children].forEach(c => { if (c.tagName !== "H2") c.remove(); }); sec.insertAdjacentHTML("beforeend", `<p class="note" style="margin:0">${what}は製品版で使えます。</p><button type="button" class="linkb" data-open="${BUY}">製品版について見る</button>`); };
     off("drive", "Googleドライブで家族と同期する機能"); off("expBtn", "書き出し・読み込み");
+
     const cs = $("csvFile").closest("section.card"); [$("csvFile"), $("csvText").closest("details"), $("csvPrev"), cs.querySelector("p.note")].forEach(x => x && x.remove());
     cs.querySelector("h2").insertAdjacentHTML("afterend", `<p class="note" style="margin:0 0 6px">銀行・カードの明細（CSV）の取り込みは製品版で使えます。下の「自動で分けるルール」は試せます。</p>`);
   }
