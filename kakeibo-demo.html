@@ -39,6 +39,15 @@ h1{margin:16px 0 4px}
 .rc .nm{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rc .amt{flex:none;width:auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .rc .amt.inc{color:var(--pos)}
+.rr{border:1px solid var(--line);border-radius:var(--r-md);background:#fff;margin:6px 0;overflow:hidden}
+.rr .rc{border:0;margin:0;border-radius:0}
+.rr ul{list-style:none;margin:0;padding:2px 12px 10px 16px;font-size:13.5px}
+.rr li{display:flex;gap:8px;padding:2px 0;color:var(--ink)}
+.rr li span:first-child{flex:1;min-width:0}
+.rr li span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.rr li small{color:var(--sub)}
+.mh{display:flex;justify-content:space-between;font-weight:700;margin:14px 2px 2px;font-size:14px}
+td.shopl{cursor:pointer;color:var(--primary);text-decoration:underline;text-underline-offset:3px}
 .rc .ds{font-size:12.5px;color:var(--sub);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--fill);color:var(--sub);margin-right:4px}
 .empty{color:var(--sub);font-size:13.5px;line-height:1.75;padding:8px 0}
@@ -188,6 +197,12 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     <h1 id="cdTitle" class="cdt"></h1>
     <div class="mnav"><button type="button" data-m="-1" aria-label="前の月">‹</button><b id="cdMonth"></b><button type="button" data-m="1" aria-label="次の月">›</button></div>
     <div id="cd"></div>
+  </section>
+
+  <section class="view" id="v-shop">
+    <button type="button" class="backb" id="shopBack">‹ 戻る</button>
+    <h1 id="spTitle" class="cdt"></h1>
+    <div id="sp"></div>
   </section>
 
   <!-- 入力 -->
@@ -378,6 +393,16 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const m = {};
     live(s.tx).forEach(t => { if (t.type === "income" || !t.shop || t.date < from || t.date > to) return; const x = (m[t.shop] = m[t.shop] || { shop: t.shop, total: 0, rids: {} }); x.total += t.amount; x.rids[t.rid] = 1; });
     return Object.values(m).map(x => ({ shop: x.shop, total: x.total, count: Object.keys(x.rids).length, avg: Math.round(x.total / Object.keys(x.rids).length) })).sort((a, b) => b.total - a.total);
+  }
+  // お店ごとの詳細：月ごとにレシートを並べる（新しい順）
+  function shopDetail(s, shop) {
+    const key = String(shop || "").trim(), tx = live(s.tx).filter(t => t.type !== "income" && String(t.shop || "").trim() === key);
+    const byRid = {}; tx.forEach(t => { const r = (byRid[t.rid] = byRid[t.rid] || { rid: t.rid, date: t.date, shop: t.shop, by: t.by, rows: [], total: 0, at: 0 }); r.rows.push(t); r.total += t.amount; r.at = Math.max(r.at, t.createdAt || t.updatedAt || 0); });
+    const rs = Object.values(byRid).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.at - a.at));
+    const months = []; rs.forEach(r => { const m = ymOf(r.date); let g = months[months.length - 1]; if (!g || g.ym !== m) { g = { ym: m, total: 0, receipts: [] }; months.push(g); } g.receipts.push(r); g.total += r.total; });
+    const it = {}; tx.forEach(t => { if (!t.item) return; const k = normName(t.item), x = (it[k] = it[k] || { item: t.item, n: 0, total: 0 }); x.n += t.qty || 1; x.total += t.amount; });
+    const total = rs.reduce((a, r) => a + r.total, 0);
+    return { shop: key, total, count: rs.length, avg: rs.length ? Math.round(total / rs.length) : 0, first: rs.length ? rs[rs.length - 1].date : "", months, items: Object.values(it).sort((a, b) => b.n - a.n || b.total - a.total) };
   }
   function search(s, q, opt) {
     const o = opt || {}, words = String(q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -648,7 +673,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -717,13 +742,13 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
 
   // ---- 画面切り替え ----
   // 画面の切り替え。ブラウザ・スマホの「戻る」で1つ前の画面（とスクロール位置）に戻れるよう履歴に積む
-  const navState = () => ({ v: view, ym, rp: typeof rpTab === "string" ? rpTab : "trend", cat: typeof detailCat === "string" ? detailCat : "", y: Math.round(window.scrollY) });
+  const navState = () => ({ v: view, ym, rp: typeof rpTab === "string" ? rpTab : "trend", cat: typeof detailCat === "string" ? detailCat : "", shop: typeof detailShop === "string" ? detailShop : "", y: Math.round(window.scrollY) });
   function show(v) {
     if (v !== "input" && F && F.rid) F = null;
     view = v;
     document.body.classList.remove("kb");
     document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === "v-" + v));
-    document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.v === (v === "cat" ? "home" : v)));
+    document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.v === (v === "cat" ? "home" : v === "shop" ? "report" : v)));
     if (v === "input" && !F) newForm();
     renderAll();
   }
@@ -740,6 +765,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     if (F && F.rid && st.v !== "input") F = null;
     if (st.ym) ym = st.ym;
     if (st.cat) detailCat = st.cat;
+    if (st.shop) detailShop = st.shop;
     if (st.rp && typeof rpTab === "string") { rpTab = st.rp; $("rpTab").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.r === rpTab)); }
     if (st.v === "input" && F && !F.rid && st.edit) F = null;
     show(st.v || "home"); requestAnimationFrame(() => window.scrollTo(0, st.y || 0));
@@ -786,7 +812,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return `<button type="button" class="rc" data-rid="${esc(r.rid)}" style="border-left:4px solid ${acc}"><div class="top"><span class="nm">${esc(title)}</span><span class="amt${r.type === "income" ? " inc" : ""}">${r.type === "income" ? "+" : ""}${yen(r.total)}</span></div>
       <div class="ds">${r.rows.some(t => t.auto) ? `<span class="chip auto">自動</span>` : ""}${cs.map(c => catChip(r.type, c)).join("")}${esc(desc)}${r.by && r.by !== "自動" ? `<span style="float:right">${esc(r.by)}</span>` : ""}</div></button>`;
   }
-  document.addEventListener("click", e => { const b = e.target.closest(".rc"); if (b) return editReceipt(b.dataset.rid); const c = e.target.closest(".cbar[data-cat]"); if (c) openCat(c.dataset.cat); });
+  document.addEventListener("click", e => { const sh = e.target.closest("[data-shop]"); if (sh) return openShop(sh.dataset.shop); const b = e.target.closest(".rc"); if (b) return editReceipt(b.dataset.rid); const c = e.target.closest(".cbar[data-cat]"); if (c) openCat(c.dataset.cat); });
   $("cats").addEventListener("keydown", e => { const c = e.target.closest(".cbar[data-cat]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openCat(c.dataset.cat); } });
 
   // ---- カテゴリの内訳 ----
@@ -804,13 +830,35 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
         <div class="grid"><div><span class="k">先月（${Number(K.addYm(ym, -1).slice(5))}月${cur ? dd + "日まで" : ""}）</span><b>${yen(d.last)}</b></div><div><span class="k">先月と比べて</span><b>${d.diff > 0 ? "+" : d.diff < 0 ? "−" : "±"}${yen(Math.abs(d.diff))}</b></div></div>
         ${d.budget ? `<div class="meter${d.total > d.budget ? " over" : ""}"><i style="width:${Math.min(100, pct)}%"></i></div><div class="pace">予算 ${yen(d.budget)} のうち ${pct}%${d.total > d.budget ? `。<b>${yen(d.total - d.budget)}</b> こえています` : `。あと <b>${yen(d.budget - d.total)}</b>${cur ? "使えます" : "残りました"}`}</div>` : ""}</div>
       ${d.count ? `<section class="card"><h2>何に使った？</h2><table class="t"><tr><th>品目</th><th>回数</th><th>合計</th></tr>${items.map(x => `<tr><td>${esc(x.item)}</td><td>${x.n}回</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table>${d.items.length > 8 ? `<button type="button" class="ghostb wide" id="cdMore">${showAllItems ? "上位8件だけ表示" : `すべて表示（${d.items.length}品目）`}</button>` : ""}</section>
-      <section class="card"><h2>どこで使った？</h2><table class="t"><tr><th>お店</th><th>回数</th><th>合計</th></tr>${d.shops.map(x => `<tr><td>${esc(x.shop)}</td><td>${x.n}回</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table></section>` : ""}
+      <section class="card"><h2>どこで使った？</h2><table class="t"><tr><th>お店</th><th>回数</th><th>合計</th></tr>${d.shops.map(x => `<tr><td${x.shop && x.shop !== "お店なし" ? ` class="shopl" data-shop="${esc(x.shop)}"` : ""}>${esc(x.shop)}</td><td>${x.n}回</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table></section>` : ""}
       <section class="card"><h2>6か月の推移</h2>${bars(tr.months, [ser], [col])}<p class="note">棒を押すと、その月の${esc(detailCat)}を表示します。</p></section>
       <section class="card"><h2>記録（${d.count}件）</h2>${d.count ? d.rows.map(t => `<button type="button" class="rc" data-rid="${esc(t.rid)}" style="border-left:4px solid ${col}"><div class="top"><span class="nm">${esc(t.item || t.shop || t.cat)}${t.qty > 1 ? ` ×${t.qty}` : ""}</span><span class="amt">${yen(t.amount)}</span></div><div class="ds">${md(t.date)}　${esc(t.shop || "")}${t.by ? `<span style="float:right">${esc(t.by)}</span>` : ""}</div></button>`).join("") : `<p class="empty">この月の${esc(detailCat)}の記録はありません。</p>`}</section>`;
     const mb = $("cdMore"); if (mb) mb.onclick = () => { showAllItems = !showAllItems; renderCat(); };
     $("cd").querySelector("svg").onclick = e => { const m = e.target.dataset && e.target.dataset.m; if (m) { ym = m; try { history.replaceState(navState(), ""); } catch (er) {} renderCat(); } };
   }
   document.querySelectorAll("#v-cat .mnav button").forEach(b => b.onclick = () => { ym = K.addYm(ym, Number(b.dataset.m)); try { history.replaceState(navState(), ""); } catch (e) {} renderCat(); });
+
+  // ---- お店の詳細（日付ごとのレシート）----
+  let detailShop = "", shopMonths = 6;
+  function openShop(shop) { detailShop = shop; shopMonths = 6; go("shop"); }
+  $("shopBack").onclick = () => back("report");
+  function renderShop() {
+    const d = K.shopDetail(S, detailShop);
+    $("spTitle").textContent = detailShop;
+    if (!d.count) { $("sp").innerHTML = `<p class="empty">このお店の記録はありません。</p>`; return; }
+    const ms = d.months.slice(0, shopMonths);
+    $("sp").innerHTML = `<div class="sum"><div class="k">${d.first.slice(0, 4)}年${Number(d.first.slice(5, 7))}月からの合計</div><div class="big">${yen(d.total)}</div>
+        <div class="grid"><div><span class="k">行った回数</span><b>${d.count}回</b></div><div><span class="k">1回あたり</span><b>${yen(d.avg)}</b></div></div></div>
+      ${d.items.length ? `<section class="card"><h2>よく買うもの</h2><div class="chips">${d.items.slice(0, 12).map(x => `<span class="chip" style="cursor:default">${esc(x.item)} ${x.n}回</span>`).join(" ")}</div></section>` : ""}
+      <section class="card"><h2>レシート</h2><p class="note" style="margin-top:0">押すと、そのレシートを直せます。</p>
+      ${ms.map(m => `<div class="mh"><span>${mLabel(m.ym)}</span><span>${m.receipts.length}回・${yen(m.total)}</span></div>` + m.receipts.map(r => {
+        const main = r.rows.slice().sort((a, b) => b.amount - a.amount)[0];
+        return `<div class="rr" style="border-left:4px solid ${color("expense", main.cat)}"><button type="button" class="rc" data-rid="${esc(r.rid)}"><div class="top"><span class="nm">${r.date.slice(5, 7).replace(/^0/, "")}月${Number(r.date.slice(8))}日（${"日月火水木金土"[new Date(r.date + "T00:00:00").getDay()]}）</span><span class="amt">${yen(r.total)}</span></div>${r.by ? `<div class="ds">${esc(r.by)}が入力</div>` : ""}</button>
+          <ul>${r.rows.map(t => `<li><span>${esc(t.item || t.cat)}${t.qty > 1 ? ` <small>×${t.qty}</small>` : ""}${t.disc ? ` <small>値引き${yen(t.disc)}</small>` : ""}</span><span>${yen(t.amount)}</span></li>`).join("")}</ul></div>`;
+      }).join("")).join("")}
+      ${d.months.length > shopMonths ? `<button type="button" class="ghostb wide" id="spMore">もっと前を見る（あと${d.months.length - shopMonths}か月）</button>` : ""}</section>`;
+    const mb = $("spMore"); if (mb) mb.onclick = () => { shopMonths += 6; renderShop(); };
+  }
 
   // ---- 入力 ----
   let F = null;
@@ -1104,7 +1152,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       const to = today(), from = shopRange === "y" ? endYm.slice(0, 4) + "-01-01" : K.addYm(endYm, -(Number(shopRange) - 1)) + "-01";
       const list = K.shops(S, from, to), max = Math.max(1, ...list.map(x => x.total));
       el.innerHTML = `<section class="card"><h2>よく使うお店</h2><div class="seg full" id="srng">${[["1", "今月"], ["3", "3か月"], ["12", "1年"], ["y", "今年"]].map(([k, l]) => `<button type="button" data-k="${k}"${k === shopRange ? ' class="on"' : ""}>${l}</button>`).join("")}</div>
-        ${list.length ? `<table class="t"><tr><th>お店</th><th>回数</th><th>1回あたり</th><th>合計</th></tr>${list.slice(0, 30).map(x => `<tr><td>${esc(x.shop)}<div style="height:4px;background:var(--primary-soft);border-radius:2px;margin-top:3px"><div style="height:4px;width:${Math.round(x.total / max * 100)}%;background:var(--primary);border-radius:2px"></div></div></td><td>${x.count}回</td><td>${yen(x.avg)}</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table>` : `<p class="empty">この期間に、お店の名前が入った支出はありません。</p>`}</section>`;
+        ${list.length ? `<table class="t"><tr><th>お店</th><th>回数</th><th>1回あたり</th><th>合計</th></tr>${list.slice(0, 30).map(x => `<tr><td class="shopl" data-shop="${esc(x.shop)}">${esc(x.shop)}<div style="height:4px;background:var(--primary-soft);border-radius:2px;margin-top:3px"><div style="height:4px;width:${Math.round(x.total / max * 100)}%;background:var(--primary);border-radius:2px"></div></div></td><td>${x.count}回</td><td>${yen(x.avg)}</td><td><b>${yen(x.total)}</b></td></tr>`).join("")}</table>` : `<p class="empty">この期間に、お店の名前が入った支出はありません。</p>`}${list.length ? `<p class="note">お店を押すと、日付ごとのレシートを見られます。</p>` : ""}</section>`;
       $("srng").onclick = e => { const b = e.target.closest("button"); if (b) { shopRange = b.dataset.k; renderReport(); } };
     } else if (rpTab === "price") {
       const its = K.priceItems(S);
@@ -1315,6 +1363,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     else if (view === "report") renderReport();
     else if (view === "memo") renderMemo();
     else if (view === "cat") renderCat();
+    else if (view === "shop") renderShop();
     else if (view === "set") { renderSet(); renderFixed(); drawDrive(); }
   }
   newForm(); F = null;
