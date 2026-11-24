@@ -654,9 +654,23 @@ label.rc.bk.on{background:var(--primary-soft);border-color:#B9C7DD}
     return Math.round(t.amount / (v * q) * per * 10) / 10;
   }
   const unitLabel = u => u === "個" ? "1個あたり" : u === "mL" ? "100mLあたり" : "100gあたり";
+  // 底値帳で「同じ品物」とみなすか：品物の名前の最後がその言葉で終わるもの（日本語は最後の言葉が品物の名前になるため）
+  // 例）バター → 「雪印バター」「バター 200g」「よつ葉 バター(有塩)」は同じ。「塩バターパン」「ポップコーン バターしょうゆ味」は別の品物
+  function sameItem(item, key) {
+    const x = String(item || "").normalize("NFKC")
+      .replace(/[(（\[【「『][^)）\]】」』]*[)）\]】」』]/g, " ")
+      .replace(/\d+(?:\.\d+)?\s*(?:kg|g|ml|cc|l|ℓ|リットル|グラム|キロ|個|枚|本|玉|切れ|袋|パック|p)(?:\s*[x×*]\s*\d+)?(?:入り?)?/gi, " ")
+      .replace(/(?:[SMLsml]{1,2}サイズ|[SMLsml]{1,2}玉|パック|入り|入)(?=\s|$)/g, " ");
+    const w = x.split(/[\s/／、,]+/).map(normName).filter(Boolean); if (!w.length) return false;
+    // 最初の言葉が品物の名前（「豆腐 絹」「牛乳 1L」）。「よつ葉 バター」のように、メーカー名のあとにその言葉だけが来るものも同じ品物とする
+    // 「じゃがりこ たらこバター」「ポテトチップス 濃厚キングチーズ」のような、お菓子の名前のあとの味は別の品物
+    return w[0].endsWith(key) || w[w.length - 1] === key;
+  }
   function priceBook(s, q, from) {
     const key = normName(q); if (!key) return { rows: [], best: null, shops: [] };
-    const rows = live(s.tx).filter(t => t.type !== "income" && t.item && normName(t.item).includes(key) && (!from || t.date >= from))
+    const pool = live(s.tx).filter(t => t.type !== "income" && t.item && normName(t.item).includes(key) && (!from || t.date >= from));
+    const strict = pool.filter(t => sameItem(t.item, key));
+    const rows = (strict.length ? strict : pool)
       .map(t => { const vf = volFor(t) || {}; return { id: t.id, rid: t.rid, date: t.date, shop: t.shop || "", item: t.item, qty: t.qty || 1, amount: t.amount, each: Math.round(t.amount / (t.qty || 1)), utype: vf.utype || "", uval: num(vf.uval) || 0, auto: !(num(t.uval) > 0) && !!vf.uval, up: unitPrice(t) }; });
     // 比べる単位：いちばん多い単位（容量なしは1点あたりで比べる）
     const cnt = {}; rows.forEach(r => { const k = r.up == null ? "" : r.utype; cnt[k] = (cnt[k] || 0) + 1; });
@@ -910,7 +924,7 @@ label.rc.bk.on{background:var(--primary-soft);border-color:#B9C7DD}
     return { text: lines.map(fold).join("\r\n") + "\r\n", count: ev.length };
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, shopSetting, isKana, toHira, yomiTrack, yomiOf, yomiInit, parseYomiList, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV, calMonth, ics };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, shopSetting, isKana, toHira, yomiTrack, yomiOf, yomiInit, parseYomiList, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, sameItem, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV, calMonth, ics };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
