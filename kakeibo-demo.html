@@ -367,6 +367,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <details class="fold"><summary>自動で分けるルール</summary><p class="note" style="margin:4px 0">明細の内容にこの言葉が入っていたら、このカテゴリにします。取り込みのときにカテゴリを直すと自動で増えます。</p><div id="rules"></div>
         <div class="f2" style="margin-top:6px"><input type="text" id="rKw" class="in" placeholder="例：ENEOS"><select id="rCat" class="in"></select></div><button type="button" class="ghostb wide" id="rAdd">ルールを追加</button></details>
     </section>
+    <section class="card"><h2>品名の読み（ひらがなで探すため）</h2><p class="note" style="margin:0 0 6px">漢字の品名を入力したとき、変換する前のひらがなを読みとして自動で覚えます（例：「ぎゅう」で「牛乳」が出ます）。ここで直したり、まだ読みがない品名に付けたりできます。</p><input type="text" class="in" id="yomiQ" placeholder="品名で絞りこむ（例：牛）" autocomplete="off"><div id="yomiList"></div></section>
     <section class="card"><h2>お店ごとの税込・税抜</h2><p class="note" style="margin:0 0 4px">入力でお店を選んだときの「金額の入れ方」です。登録すると、そのときの入れ方がそのお店の設定になります（初めてのお店も）。ここで変えることもできます。</p><div id="shopTaxList"></div></section>
     <section class="card"><h2>カテゴリ</h2><div class="seg full" id="cType" style="margin-bottom:6px"><button type="button" data-t="expense" class="on">支出</button><button type="button" data-t="income">収入</button></div><p class="note" style="margin:0 0 4px">名前を書き換えると、過去の記録も変わります。ほかのカテゴリと同じ名前にすると、1つにまとまります。</p><div id="catList"></div>
       <div class="f2" style="margin-top:8px"><input type="text" id="cName" class="in" placeholder="新しいカテゴリ"><button type="button" class="ghostb" id="cAdd">追加</button></div></section>
@@ -520,7 +521,8 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     live(s.tx).forEach(t => {
       if (t.shop) shopN[t.shop] = (shopN[t.shop] || 0) + 1;
       if (t.item) { const k = t.type + ":" + t.item, p = items[k], sh = Object.assign({}, p ? p.shops : {}); if (t.shop) sh[t.shop] = (sh[t.shop] || 0) + 1;
-        if (!p || p.date <= t.date) items[k] = Object.assign({ item: t.item, type: t.type, cat: t.cat, unit: Math.round(t.amount / (t.qty || 1)), date: t.date, n: (p ? p.n : 0) + 1, shops: sh }, t.uval ? { uval: t.uval, utype: t.utype } : {}); else { p.n++; p.shops = sh; } }
+        const yomi = t.yomi || (p && p.yomi) || "";
+        if (!p || p.date <= t.date) items[k] = Object.assign({ item: t.item, type: t.type, cat: t.cat, unit: Math.round(t.amount / (t.qty || 1)), date: t.date, n: (p ? p.n : 0) + 1, shops: sh }, t.uval ? { uval: t.uval, utype: t.utype } : {}, yomi ? { yomi } : {}); else { p.n++; p.shops = sh; if (!p.yomi && t.yomi) p.yomi = t.yomi; } }
     });
     return { shops: Object.keys(shopN).sort((a, b) => shopN[b] - shopN[a]), items: Object.values(items).sort((a, b) => b.n - a.n) };
   }
@@ -545,11 +547,15 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     Object.keys(sum).forEach(c => { out[c] = Math.round(sum[c] / nm / 100) * 100; });
     return { months: nm, avg: out };
   }
+  // 読みとして使える文字（ひらがな・カタカナ・長音）だけか
+  const isKana = x => /^[\u3041-\u3096\u30a1-\u30fa\u30fc\u3000\s]+$/.test(String(x || ""));
+  const toHira = x => String(x || "").replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
   // 品名の候補の並び順：今のお店でよく買うもの → 名前の先頭が合うもの → よく買うもの → 最近買ったもの
   function rankItems(items, q, opt) {
     const o = opt || {}, t = normName(q); if (!t) return [];
-    return items.filter(x => (!o.type || x.type === o.type) && normName(x.item).includes(t))
-      .map(x => { const sc = o.shop && x.shops ? x.shops[o.shop] || 0 : 0, nm = normName(x.item); return { x, s: (sc ? 1000 + Math.min(sc, 50) * 10 : 0) + (nm === t ? 800 : nm.startsWith(t) ? 500 : 0) + Math.min(x.n || 0, 100) }; })
+    // 品名そのもの（漢字など）と、覚えた読み（ひらがな）のどちらかに合えば候補にする
+    return items.filter(x => (!o.type || x.type === o.type) && (normName(x.item).includes(t) || (x.yomi && normName(x.yomi).includes(t))))
+      .map(x => { const sc = o.shop && x.shops ? x.shops[o.shop] || 0 : 0, nm = normName(x.item), ym = x.yomi ? normName(x.yomi) : ""; return { x, s: (sc ? 1000 + Math.min(sc, 50) * 10 : 0) + (nm === t || ym === t ? 800 : nm.startsWith(t) || (ym && ym.startsWith(t)) ? 500 : 0) + Math.min(x.n || 0, 100) }; })
       .sort((a, b) => b.s - a.s || (a.x.date < b.x.date ? 1 : a.x.date > b.x.date ? -1 : 0)).slice(0, o.max || 4).map(a => a.x);
   }
   // ---- 底値帳：容量あたりの値段 ----
@@ -779,7 +785,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return { state: out, changedLocal, changedRemote };
   }
   // ドライブに保存するときは、空の項目を省いて小さくする（読み込み時に norm で戻る）
-  const DEF = { type: "expense", qty: 1, memo: "", shop: "", by: "", disc: 0, uval: 0, utype: "", item: "" };
+  const DEF = { type: "expense", qty: 1, memo: "", shop: "", by: "", disc: 0, uval: 0, utype: "", item: "", yomi: "", tm: "" };
   function compact(s) {
     const o = Object.assign({}, s);
     o.tx = (s.tx || []).map(t => { const x = {}; Object.keys(t).forEach(k => { const v = t[k]; if (v === undefined || v === null || (k in DEF && v === DEF[k]) || (k === "rid" && v === t.id) || (k === "createdAt" && v === t.updatedAt) || v === false) return; x[k] = v; }); return x; });
@@ -801,7 +807,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
   }
 
-  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, shopSetting, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
+  const api = { COLS, PALETTE, num, ymd, ymOf, addYm, uid, defaultCats, empty, norm, live, receipt, month, days, trend, yoy, shops, search, suggest, goal, parseCSV, toDate, detect, ruleCat, importCSV, mergeCol, syncMerge, compact, catDetail, shopDetail, rankItems, catAvg, shopTax, shopSetting, isKana, toHira, dueDates, nextDue, autoPost, fixedSummary, fromSubsc, normName, volOf, unitPrice, priceBook, priceItems, packDrive, unpackDrive, exportData, importData, toCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.KakeiboCalc = api;
 })(this);
 
@@ -1080,7 +1086,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   const blankRow = () => ({ id: null, disc: "", uval: "", utype: "", more: false, item: "", cat: F.type === "income" ? (cats("income")[0] || {}).name || "給与" : (P.lastCat || "食費"), amount: "", qty: 1, rate: "", catTouched: false });
   function editReceipt(rid) {
     const tx = K.live(S.tx).filter(t => t.rid === rid); if (!tx.length) return;
-    F = { rid, type: tx[0].type, date: tx[0].date, shop: tx[0].shop || "", tax: "incl", memo: tx.find(t => t.memo) ? tx.find(t => t.memo).memo : "", rows: tx.map(t => ({ id: t.id, item: t.item, cat: t.cat, amount: Math.round((t.amount + (t.disc || 0)) / (t.qty || 1)), qty: t.qty || 1, rate: "", disc: t.disc || "", uval: t.uval || "", utype: t.utype || "", more: !!(t.disc || t.uval), catTouched: true })) };
+    F = { rid, type: tx[0].type, date: tx[0].date, shop: tx[0].shop || "", tax: "incl", memo: tx.find(t => t.memo) ? tx.find(t => t.memo).memo : "", rows: tx.map(t => ({ id: t.id, item: t.item, yomi: t.yomi || "", cat: t.cat, amount: Math.round((t.amount + (t.disc || 0)) / (t.qty || 1)), qty: t.qty || 1, rate: "", disc: t.disc || "", uval: t.uval || "", utype: t.utype || "", more: !!(t.disc || t.uval), catTouched: true })) };
     go("input"); try { history.replaceState(Object.assign({}, history.state, { edit: rid }), ""); } catch (e) {} drawForm();
   }
   let SG = { shops: [], items: [] };
@@ -1217,7 +1223,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const rt = q(i, "rt"); if (rt && F.tax !== "incl") { const v = catTax(name) || F.tax; rt.value = v; r.rate = v; } calcTotal();
   }
   function applyHit(i, hit) {
-    readRows(); const r = F.rows[i]; r.item = hit.item; q(i, "it").value = hit.item;
+    readRows(); const r = F.rows[i]; r.item = hit.item; r.yomi = hit.yomi || r.yomi || ""; q(i, "it").value = hit.item; const itEl = q(i, "it"); if (itEl) yomiState.set(itEl, { acc: r.yomi, cur: "" });
     if (!r.catTouched) setCat(i, hit.cat), r.catTouched = false;
     // 値段と容量は自動で入れない（その日の値段を自分で入れる）。カテゴリだけ前回に合わせる
     calcTotal();
@@ -1317,6 +1323,22 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const pos = posOf(tg); ddHide(); readRows(); moveFrom(pos);
   });
   $("inShop").addEventListener("input", e => suggestFor(e.target));
+  // 品名を漢字に変換する前のひらがなを拾って「読み」として覚える（次から、ひらがなで探せる）
+  const yomiState = new WeakMap();
+  const yst = el => { let st = yomiState.get(el); if (!st) { st = { acc: "", cur: "" }; yomiState.set(el, st); } return st; };
+  const setYomi = (el, acc) => { const r = rowEl(el) && rowOf(el); if (r) r.yomi = K.toHira(acc).replace(/\s/g, ""); };
+  $("rows").addEventListener("compositionstart", e => { if (e.target.classList.contains("it")) yst(e.target).cur = ""; });
+  $("rows").addEventListener("compositionupdate", e => { if (!e.target.classList.contains("it")) return; if (e.data && K.isKana(e.data)) yst(e.target).cur = e.data; });
+  $("rows").addEventListener("compositionend", e => {
+    const el = e.target; if (!el.classList.contains("it")) return; const st = yst(el), d = e.data || "";
+    st.acc += K.isKana(d) ? d : st.cur; st.cur = ""; setYomi(el, st.acc);
+  });
+  $("rows").addEventListener("input", e => {
+    const el = e.target; if (!el.classList || !el.classList.contains("it")) return; const st = yst(el);
+    if (!el.value) { st.acc = ""; st.cur = ""; setYomi(el, ""); return; }
+    // 変換を使わずに入ったかな（キーボードによる）も読みに足す
+    if (!e.isComposing && e.inputType === "insertText" && e.data && K.isKana(e.data)) { st.acc += e.data; setYomi(el, st.acc); }
+  });
   // お店を入れたら、そのお店で前回使った「金額の入れ方（税込・税抜）」に合わせる
   function applyShopTax() {
     if (!F || F.rid || F.type === "income" || F.taxTouched) return;
@@ -1351,7 +1373,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     rows.forEach(r => { if (!r.cat) r.cat = F.type === "income" ? "その他の収入" : "その他"; if (!cats(F.type).some(c => c.name === r.cat)) { const l = cats(F.type); S.cats.push({ id: K.uid("c"), name: r.cat, type: F.type, color: K.PALETTE[l.length % K.PALETTE.length], order: (l.length ? l[l.length - 1].order : 0) + 1, updatedAt: t }); } });
     const keep = {};
     rows.forEach((r, i) => {
-      const o = { type: F.type, date: F.date, shop: F.shop, rid, item: r.item, cat: r.cat, qty: r.qty || 1, amount: rc.incl[i], memo: i === 0 ? F.memo : "", disc: Math.round(Math.abs(K.num(r.disc))) || 0, uval: K.num(r.uval) > 0 && r.utype ? K.num(r.uval) : 0, utype: K.num(r.uval) > 0 && r.utype ? r.utype : "", tm: F.type === "income" ? "" : F.tax === "incl" ? "i" : String(F.tax), updatedAt: t };
+      const o = { type: F.type, date: F.date, shop: F.shop, rid, item: r.item, cat: r.cat, qty: r.qty || 1, amount: rc.incl[i], memo: i === 0 ? F.memo : "", disc: Math.round(Math.abs(K.num(r.disc))) || 0, uval: K.num(r.uval) > 0 && r.utype ? K.num(r.uval) : 0, utype: K.num(r.uval) > 0 && r.utype ? r.utype : "", tm: F.type === "income" ? "" : F.tax === "incl" ? "i" : String(F.tax), yomi: r.item && r.yomi && !K.isKana(r.item) ? r.yomi : "", updatedAt: t };
       const ex = r.id && S.tx.find(x => x.id === r.id);
       if (ex) { Object.assign(ex, o); keep[ex.id] = 1; } else { const id = K.uid("t"); S.tx.push(Object.assign({ id, by: P.name || "", createdAt: t }, o)); keep[id] = 1; }
     });
@@ -1499,7 +1521,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       <div class="act"><input type="number" inputmode="numeric" min="0" step="1000" data-nomoney placeholder="貯めた金額"><button type="button" class="ghostb" data-ga="add">足す</button><button type="button" class="ghostb neg" data-ga="del">削除</button></div></div>`; }).join("") : `<p class="empty">旅行や車の買い替えなど、目標を決めて貯めた金額を記録できます。</p>`;
     const cl = cats(cType), use = {}; K.live(S.tx).forEach(t => { if (t.type === cType) use[t.cat] = (use[t.cat] || 0) + 1; });
     $("cType").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.t === cType));
-    drawShopTax();
+    drawShopTax(); drawYomi();
     const unused = cl.filter(c => !use[c.name]);
     $("catList").innerHTML = cl.map((c, i) => `<div class="cli${catOpen === c.id ? " open" : ""}" data-c="${esc(c.id)}">
       <button type="button" class="chead" data-ca="toggle"><span class="dot" style="background:${c.color}"></span><span class="cnm">${esc(c.name)}</span><span class="cuse">${use[c.name] ? use[c.name].toLocaleString("ja-JP") + "件" : "記録なし"}${c.tax ? `・税抜${c.tax === "0" ? "非課税" : c.tax + "%"}` : ""}</span></button>
@@ -1545,6 +1567,18 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   });
   $("cType").onclick = e => { const b = e.target.closest("button"); if (b) { cType = b.dataset.t; renderSet(); } };
   let catOpen = null, shopTaxAll = false;
+  function drawYomi() {
+    const box = $("yomiList"); if (!box) return; const q = K.normName($("yomiQ").value);
+    const l = K.suggest(S).items.filter(x => x.type === "expense" && !K.isKana(x.item) && (!q || K.normName(x.item).includes(q) || (x.yomi && K.normName(x.yomi).includes(q)))).slice(0, 20);
+    box.innerHTML = l.length ? l.map(x => `<div class="bud stx"><span>${esc(x.item)}</span><input type="text" data-yomi="${esc(x.item)}" value="${esc(x.yomi || "")}" placeholder="よみ" autocomplete="off" style="width:130px;text-align:left"></div>`).join("") + `<p class="note">よく買う順に20件まで出ています。上の欄で絞りこめます。</p>` : `<p class="empty">${q ? "その品名はありません。" : "漢字の品名を登録すると、ここに出てきます。"}</p>`;
+  }
+  document.addEventListener("input", e => { if (e.target.id === "yomiQ") drawYomi(); });
+  document.addEventListener("change", e => {
+    const it = e.target.dataset && e.target.dataset.yomi; if (it === undefined) return;
+    const y = K.toHira(e.target.value.trim()).replace(/\s/g, ""); if (y && !K.isKana(y)) { toast("読みは、ひらがなで入れてください"); return; }
+    const t = now(); let n = 0; S.tx.forEach(x => { if (!x.del && x.item === it && (x.yomi || "") !== y) { x.yomi = y; x.updatedAt = t; n++; } });
+    if (n) { changed(); toast(y ? `「${it}」の読みを「${y}」にしました` : `「${it}」の読みを消しました`); }
+  });
   const TAXL = { incl: "税込", "8": "税抜 8%", "10": "税抜 10%" };
   function drawShopTax() {
     const box = $("shopTaxList"); if (!box) return;
