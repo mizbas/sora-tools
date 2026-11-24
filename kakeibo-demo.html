@@ -590,7 +590,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   function parseYomiList(text) {
     const out = [];
     String(text || "").split(/\r?\n/).forEach(line => {
-      const l = line.replace(/^[\s\-・*\d.、)）]+/, "").trim(); if (!l) return;
+      const l = line.replace(/^\s*(?:[-・*•]\s*|\d+[.)．、）]\s*)/, "").trim(); if (!l) return;
       const m = l.match(/^(.+?)\s*(?:\t|,|，|:|：|=|＝|→|->|\s{2,}|\s\|\s|\|)\s*(.+)$/); if (!m) return;
       const item = m[1].replace(/^["「『]|["」』]$/g, "").trim(), y = toHira(m[2].replace(/^["「『（(]|["」』）)]$/g, "").trim()).replace(/[\s\u3000]/g, "");
       if (item && y && /^[\u3041-\u3096\u30fc0-9A-Za-z.\-]+$/.test(y)) out.push({ item, yomi: y });
