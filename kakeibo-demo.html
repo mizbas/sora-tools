@@ -95,6 +95,7 @@ input[type=date].in{font:inherit;font-size:16px;padding:9px 11px;border:1px soli
 .rows{margin-top:6px}
 .row{border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin:8px 0;background:#fff}
 .row .r1{display:grid;grid-template-columns:112px 1fr;gap:8px}
+.row select.ct{width:100%;padding-right:26px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235D6878' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;background-size:16px;text-overflow:ellipsis}
 .row .amw{flex:1 1 auto;min-width:110px;display:flex;align-items:center;gap:3px;font-size:13px;color:var(--sub)}
 .row .amw input{flex:1;min-width:0;text-align:right!important;font-weight:700}
 .row .rt{width:74px!important;padding:9px 4px!important;flex:none}
@@ -351,7 +352,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     <section class="card faq"><h2>使い方とよくある質問</h2>
       <details><summary>レシートの入力のしかた</summary><div class="a">「入力」でお店と日付を選び、品目ごとに品名・カテゴリ・金額を入れます。1回の買い物でカテゴリが分かれるとき（食費と日用品など）も1枚のレシートにまとめて登録できます。合計だけでよければ、品目は1行で大丈夫です。</div></details>
       <details><summary>税抜の値段で入れたい</summary><div class="a">「税抜 8%」「税抜 10%」を選ぶと、レシートと同じく税率ごとに合計してから消費税（1円未満切り捨て）を足します。食費は自動で8%になります。ほかのカテゴリも「設定・共有」のカテゴリで税率を決めておくと、カテゴリを選んだときに自動で切り替わります。行ごとに変えることもできます。</div></details>
-      <details><summary>キーボードで速く入れたい</summary><div class="a">はじめは「品名をまとめて」入れる順になっています。品名を入れてEnter（キーボードの「次へ」）を押すと次の行の品名へ進み、品名が空のままEnterを押すと1行目の金額へ移ります。金額も同じように下へ進み、最後の金額でEnterを押すとキーボードが閉じて合計が見えます。入力画面の右上の「入れ方」を「1品ずつ」にすると、カテゴリ→品名→個数→金額の順に1行ずつ進みます。候補が出ているときは、↓↑キー（パソコンはTabでも）で選んでEnterで決まります。</div></details>
+      <details><summary>キーボードで速く入れたい</summary><div class="a">はじめは「品名をまとめて」入れる順になっています。品名を入れてEnter（キーボードの「次へ」）を押すと次の行の品名へ進み、品名が空のままEnterを押すと1行目の金額へ移ります。金額も同じように下へ進み、最後の金額でEnterを押すとキーボードが閉じて合計が見えます。入力画面の右上の「入れ方」を「1品ずつ」にすると、品名→個数→金額の順に1行ずつ進みます。カテゴリは前に買ったものなら自動で入り、変えるときは左の欄を押して選びます。候補が出ているときは、↓↑キー（パソコンはTabでも）で選んでEnterで決まります。</div></details>
       <details><summary>前に買ったものを早く入れたい</summary><div class="a">品名を入れ始めると、前に入れた品名が候補に出ます。選ぶと前回のカテゴリが自動で入ります（値段はその日の値段を入れてください。候補の横に前回の値段が出ます）。お店の名前もよく行く順に候補に出ます。</div></details>
       <details><summary>家族で同じ家計簿を使うには</summary><div class="a">1人目が「設定・共有」で「共有ファイルを作る」→「家族を招待」に相手のGoogleアカウントのメールアドレスを入れます。2人目は自分のスマホでこの家計簿を開き、「家族が作ったファイルを選ぶ」から招待されたファイルを選びます。そのあとは入力するたびに自動で同期します。開いたときは、ホームの「タップして最新にする」を押すと家族が入れた分も反映されます（そこから約1時間は、入力するたびに自動で同期します）。</div></details>
       <details><summary>同じものを2人が同時に直したら？</summary><div class="a">記録ごとに、あとから保存したほうが残ります。別々の記録を同時に入れたときは、両方とも残ります。</div></details>
@@ -1046,7 +1047,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const taxed = F.type !== "income" && F.tax !== "incl", inc = F.type === "income";
     F.rows.forEach(r => { if (taxed && (r.rate === "" || r.rate == null)) r.rate = catTax(r.cat) || F.tax; if (!taxed) r.rate = ""; });
     $("rows").innerHTML = F.rows.map((r, i) => `<div class="row" data-i="${i}">
-      <div class="r1"><input type="text" class="ct" value="${esc(r.cat)}" placeholder="カテゴリ" autocomplete="off" enterkeyhint="next" aria-label="カテゴリ"><input type="text" class="it" placeholder="${inc ? "例：11月分の給料" : "品名（例：牛乳）"}" value="${esc(r.item)}" autocomplete="off" enterkeyhint="next" aria-label="品名"></div>
+      <div class="r1"><select class="ct" aria-label="カテゴリ">${(() => { const l = cats(F.type).map(c => c.name); if (r.cat && !l.includes(r.cat)) l.unshift(r.cat); return l.map(n => `<option value="${esc(n)}"${n === r.cat ? " selected" : ""}>${esc(n)}</option>`).join(""); })()}</select><input type="text" class="it" placeholder="${inc ? "例：11月分の給料" : "品名（例：牛乳）"}" value="${esc(r.item)}" autocomplete="off" enterkeyhint="next" aria-label="品名"></div>
       <div class="r2">${inc ? "" : `<span class="qw">×<input type="text" class="qty" inputmode="numeric" value="${esc(r.qty)}" aria-label="個数" enterkeyhint="next">個</span>`}<span class="amw"><input type="text" class="am" inputmode="numeric" placeholder="金額" value="${esc(fmtAmt(r.amount))}" enterkeyhint="next" aria-label="金額">円</span>${taxed ? `<select class="rt" aria-label="税率">${[["8", "8%"], ["10", "10%"], ["0", "非課税"]].map(([v, l]) => `<option value="${v}"${String(r.rate) === v ? " selected" : ""}>${l}</option>`).join("")}</select>` : ""}${F.rows.length > 1 ? `<button type="button" class="x" aria-label="この行を削除">×</button>` : ""}</div>
       ${inc ? "" : `<button type="button" class="more">${r.more ? "値引き・容量を閉じる" : "＋ 値引き・容量"}</button>`}
       ${!inc && r.more ? `<div class="r3"><div><label>値引き（円）</label><input type="text" class="dc" inputmode="numeric" value="${esc(fmtAmt(r.disc))}" placeholder="0" enterkeyhint="next"></div><div><label>容量</label><input type="text" class="uv" inputmode="decimal" value="${esc(r.uval || "")}" placeholder="例：1000" enterkeyhint="next"></div><div><label>単位</label><select class="ut">${["g", "mL", "個"].map(u => `<option${u === (r.utype || "g") ? " selected" : ""}>${u}</option>`).join("")}</select></div></div>` : ""}${inc ? "" : `<div class="upv"></div>`}</div>`).join("");
@@ -1102,7 +1103,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     readRows(); const last = F.rows[i]; F.rows.push(Object.assign(blankRow(), { cat: last.cat, rate: last.rate })); drawForm(); focusEl(q(i + 1, c));
   }
   function setCat(i, name) {
-    const r = F.rows[i]; r.cat = name; r.catTouched = true; const ct = q(i, "ct"); if (ct) ct.value = name;
+    const r = F.rows[i]; r.cat = name; r.catTouched = true; const ct = q(i, "ct"); if (ct) { if (![...ct.options].some(o => o.value === name)) ct.add(new Option(name, name), 0); ct.value = name; }
     const rt = q(i, "rt"); if (rt && F.tax !== "incl") { const v = catTax(name) || F.tax; rt.value = v; r.rate = v; } calcTotal();
   }
   function applyHit(i, hit) {
@@ -1113,7 +1114,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   }
   function moveFrom(pos) {
     if (!pos) return; const v = P.mode !== "h", inc = F.type === "income", i = pos.i;
-    if (pos.c === "shop") return focusEl(q(0, "ct"));
+    if (pos.c === "shop") return focusEl(q(0, "it"));
     if (pos.c === "ct") return focusEl(q(i, "it"));
     const empty = k => { const r = F.rows[k]; return r && !r.item && !K.num(r.amount); };
     const done = () => { readRows(); while (F.rows.length > 1 && empty(F.rows.length - 1)) F.rows.pop(); drawForm(); if (document.activeElement) document.activeElement.blur(); kbState(); setTimeout(() => $("tot").closest(".foot").scrollIntoView({ block: "end", behavior: "smooth" }), 200); };
@@ -1125,20 +1126,19 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     if (pos.c === "am" && v && (i + 1 >= F.rows.length || empty(i + 1))) return done();
     if (pos.c === "it") { const it = q(i, "it"), hit = it && SG.items.find(x => x.type === F.type && x.item === it.value.trim()); if (hit && !F.rows[i].catTouched) applyHit(i, hit); return v ? nextRow(i, "it") : focusEl(q(i, inc ? "am" : "qty")); }
     if (pos.c === "qty") return focusEl(q(i, "am"));
-    if (pos.c === "am") return v ? nextRow(i, "am") : nextRow(i, "ct");
+    if (pos.c === "am") return v ? nextRow(i, "am") : nextRow(i, "it");
     if (pos.c === "dc") return focusEl(q(i, "uv"));
-    if (pos.c === "uv") return nextRow(i, v ? "am" : "ct");
+    if (pos.c === "uv") return nextRow(i, v ? "am" : "it");
   }
   function suggestFor(inp, all) {
     const t = all ? "" : normName(inp.value);
     if (inp.id === "inShop") return ddShow(inp, SG.shops.filter(x => !t || normName(x).includes(t) && x !== inp.value).map(x => ({ label: x, pick: () => { inp.value = x; F.shop = x; } })));
     const i = Number(rowEl(inp).dataset.i);
-    if (inp.classList.contains("ct")) { const all = cats(F.type).map(c => c.name), f = all.filter(n => !t || normName(n).includes(t)); return ddShow(inp, (f.length ? f : all).map(n => ({ label: n, sub: F.type !== "income" && F.tax !== "incl" && catTax(n) ? catTax(n) + "%" : "", pick: () => setCat(i, n) }))); }
     if (inp.classList.contains("it")) { if (!t) return ddHide(); return ddShow(inp, SG.items.filter(x => x.type === F.type && normName(x.item).includes(t)).map(x => ({ label: x.item, sub: x.cat + "・" + yen(x.unit) + (x.uval ? "・" + x.uval + x.utype : ""), pick: () => applyHit(i, x) }))); }
   }
   const normName = K.normName;
   const FIELDS = ".ct,.it,.qty,.am,.dc,.uv,#inShop";
-  $("v-input").addEventListener("focusin", e => { if (e.target.matches("#inShop,.ct")) suggestFor(e.target, true); });
+  $("v-input").addEventListener("focusin", e => { if (e.target.matches("#inShop")) suggestFor(e.target, true); });
   $("v-input").addEventListener("focusout", e => {
     const tg = e.target, wasIt = tg.classList && tg.classList.contains("it") && rowEl(tg) ? Number(rowEl(tg).dataset.i) : -1;
     setTimeout(() => {
@@ -1200,7 +1200,6 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     if (e.key !== "Enter" || e.isComposing || e.keyCode === 229 || !tg.matches(FIELDS)) return;
     e.preventDefault();
     if (open && ddAct >= 0) return ddPick(ddAct);
-    if (open && tg.classList.contains("ct") && ddItems.length === 1 && !cats(F.type).some(c => c.name === tg.value.trim())) return ddPick(0);
     const pos = posOf(tg); ddHide(); readRows(); moveFrom(pos);
   });
   $("inShop").addEventListener("input", e => suggestFor(e.target));
@@ -1208,14 +1207,14 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     const tg = e.target;
     if (tg.classList.contains("am") || tg.classList.contains("dc")) { const f = fmtAmt(tg.value); if (tg.value !== f) tg.value = f; }
     if (tg.classList.contains("qty")) tg.value = tg.value.replace(/[^\d]/g, "");
-    if (tg.classList.contains("ct")) { rowOf(tg).catTouched = true; suggestFor(tg); }
+
     if (tg.classList.contains("it")) suggestFor(tg);
     calcTotal();
   });
   $("rows").addEventListener("change", e => { if (e.target.classList.contains("ct")) { const i = Number(rowEl(e.target).dataset.i), n = e.target.value.trim(); if (n) setCat(i, n); } calcTotal(); });
   $("rows").addEventListener("click", e => { if (e.target.classList.contains("more")) { readRows(); const r = rowOf(e.target), i = Number(rowEl(e.target).dataset.i); r.more = !r.more; drawForm(); if (r.more) focusEl(q(i, "dc")); return; }
     if (e.target.classList.contains("x")) { readRows(); F.rows.splice(Number(rowEl(e.target).dataset.i), 1); drawForm(); } });
-  $("addRow").onclick = () => { readRows(); const last = F.rows[F.rows.length - 1]; F.rows.push(Object.assign(blankRow(), last ? { cat: last.cat, rate: last.rate } : {})); drawForm(); focusEl(q(F.rows.length - 1, P.mode !== "h" ? "it" : "ct")); };
+  $("addRow").onclick = () => { readRows(); const last = F.rows[F.rows.length - 1]; F.rows.push(Object.assign(blankRow(), last ? { cat: last.cat, rate: last.rate } : {})); drawForm(); focusEl(q(F.rows.length - 1, "it")); };
   $("modeBtn").onclick = () => { P.mode = P.mode !== "h" ? "h" : "v"; psave(); drawForm(); toast(P.mode !== "h" ? "品名をまとめて入れてから、金額をまとめて入れる順にしました" : "1品ずつ「カテゴリ→品名→個数→金額」の順にしました"); };
   $("inType").onclick = e => { const b = e.target.closest("button"); if (!b || b.dataset.t === F.type) return; readRows(); const keep = { date: F.date, shop: F.shop }; F.type = b.dataset.t; F.rows = [blankRow()]; Object.assign(F, keep); drawForm(); };
   $("inTax").onclick = e => { const b = e.target.closest("button"); if (!b) return; readRows(); F.tax = b.dataset.x; F.rows.forEach(r => { r.rate = ""; }); P.tax = F.tax; psave(); drawForm(); };
