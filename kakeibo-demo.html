@@ -641,7 +641,9 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
     // 比べる単位：いちばん多い単位（容量なしは1点あたりで比べる）
     const cnt = {}; rows.forEach(r => { const k = r.up == null ? "" : r.utype; cnt[k] = (cnt[k] || 0) + 1; });
     const unit = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || "";
-    const val = r => (unit && r.up != null && r.utype === unit) ? r.up : (!unit ? r.each : null);
+    // 「1個」で比べている品物（卵1パック＝1個など）は、容量を入れていない記録も1個として比べる
+    const ko = rows.filter(r => r.utype === "個" && r.up != null), oneEach = unit === "個" && ko.length && ko.filter(r => r.uval === 1).length * 2 >= ko.length;
+    const val = r => (unit && r.up != null && r.utype === unit) ? r.up : (!unit || (oneEach && r.up == null && !r.uval) ? r.each : null);
     rows.sort((a, b) => { const x = val(a), y = val(b); if (x == null && y == null) return a.date < b.date ? 1 : -1; if (x == null) return 1; if (y == null) return -1; return x - y || (a.date < b.date ? 1 : -1); });
     const best = rows.find(r => val(r) != null) || null;
     const sm = {}; rows.forEach(r => { const v = val(r); if (v == null) return; const k = r.shop || "（お店なし）"; if (!sm[k] || v < sm[k].v) sm[k] = { shop: k, v, date: r.date }; });
