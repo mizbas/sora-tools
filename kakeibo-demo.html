@@ -115,7 +115,7 @@ input[type=date].in{font:inherit;font-size:16px;padding:9px 11px;border:1px soli
 .sg li.act,.sg li:active{background:var(--primary-soft)}
 .dd li.act{background:var(--primary);color:#fff}.dd li.act small{color:#fff}
 body.kb .tabbar,body.kb .foot,body.kb header,body.kb #inTools,body.kb #v-input h1{display:none}
-body.kb{padding-bottom:45vh}
+body.kb{padding-bottom:85vh}
 body.kb .row{padding:8px 10px;margin:6px 0}
 body.kb .row .r2{margin-top:6px}
 body.kb .row .more{padding-top:4px}
@@ -1187,7 +1187,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       if (!ul.isConnected) return;
       const vv = window.visualViewport, top = vv ? vv.offsetTop : 0, bottom = top + (vv ? vv.height : innerHeight);
       const ur = ul.getBoundingClientRect(), row = input.closest(".row");
-      if (ur.bottom > bottom - 6 && row) row.scrollIntoView({ block: "start" });
+      if (ur.bottom > bottom - 6 && row && scrollToBy(row.getBoundingClientRect().top - top - 8)) sfLast = Date.now();
     };
     fit(); requestAnimationFrame(fit); setTimeout(fit, 200);
   }
@@ -1289,19 +1289,37 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
   const typing = () => { const a = document.activeElement; return !!(a && a.closest && a.closest("#v-input") && a.matches("input[type=text],input:not([type]),textarea")); };
   function kbState() { const vvOpen = window.visualViewport && window.innerHeight - visualViewport.height > 150; document.body.classList.toggle("kb", view === "input" && (vvOpen || (touch && typing()))); }
   // 入力中の欄を、キーボードに隠れない位置（見えている画面の上のほう）に出す
-  function showField(el) {
+  // 画面を動かす：動かせる範囲に収め、ほとんど動かないときは何もしない
+  // （届かない位置へ動かそうとすると、iPhoneが跳ね返し→また動かす…をくり返して画面が震えるため）
+  function scrollToBy(dy) {
+    const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight), y0 = window.scrollY;
+    const y = Math.round(Math.min(max, Math.max(0, y0 + dy))); if (Math.abs(y - y0) < 6) return false;
+    window.scrollTo(window.scrollX, y); return true;
+  }
+  let sfLast = 0;
+  // 入力中の欄を、キーボードに隠れない位置に出す。品名の欄は行ごと上のほうへ（下に候補を並べるため）
+  function showField(el, opt) {
     if (!el || !el.getBoundingClientRect) return;
-    const row = el.classList && el.classList.contains("it") ? el.closest(".row") : null;
+    const onlyHidden = opt && opt.onlyHidden, row = el.classList && el.classList.contains("it") ? el.closest(".row") : null;
     const fix = () => {
       if (document.activeElement !== el) return;
-      // 品名の欄は、その行をキーボードの上の見えている範囲のいちばん上に出す（下に候補が並ぶ場所をあける）
-      if (row) { const vv = window.visualViewport, top = vv ? vv.offsetTop : 0, r = row.getBoundingClientRect(); if (Math.abs(r.top - top - 8) > 24) row.scrollIntoView({ block: "start" }); return; }
-      const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0), h = vv ? vv.height : innerHeight, r = el.getBoundingClientRect();
-      const want = top + (el.classList.contains("it") ? Math.min(h * 0.1, 56) : Math.min(h * 0.25, 140)); if (r.top < top + 8 || r.bottom > top + h - 24 || r.top - want > h * 0.3) window.scrollBy(0, r.top - want);
+      const vv = window.visualViewport, top = vv ? vv.offsetTop : 0, h = vv ? vv.height : innerHeight, r = el.getBoundingClientRect();
+      const hidden = r.top < top + 4 || r.bottom > top + h - 8;
+      if (onlyHidden && !hidden) return;
+      const want = row ? top + 8 : top + Math.min(h * 0.25, 140), from = row ? row.getBoundingClientRect().top : r.top, d = from - want;
+      if (!hidden && !row && Math.abs(d) <= h * 0.3) return;
+      if (!hidden && row && Math.abs(d) <= 24) return;
+      if (scrollToBy(d)) sfLast = Date.now();
     };
+    if (onlyHidden) { fix(); return; }
     fix(); setTimeout(fix, 120); setTimeout(fix, 380);
   }
-  if (window.visualViewport) visualViewport.addEventListener("resize", () => { kbState(); if (typing()) showField(document.activeElement); else settle(); });
+  // キーボードの高さが変わったとき：隠れているときだけ動かす。直前に動かしたばかりなら待つ（行ったり来たりを防ぐ）
+  let vvT = 0;
+  if (window.visualViewport) visualViewport.addEventListener("resize", () => {
+    kbState(); clearTimeout(vvT);
+    vvT = setTimeout(() => { if (typing()) { if (Date.now() - sfLast > 450) showField(document.activeElement, { onlyHidden: true }); } else settle(); }, 160);
+  });
   // iPhoneでキーボードを閉じたあと、下のバーが浮いたままになるのを直す（画面を1px動かして位置を計算し直させる）
   function settle() {
     clearTimeout(settle.t); settle.t = setTimeout(() => {
