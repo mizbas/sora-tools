@@ -965,7 +965,7 @@ tr.cheap td{background:var(--pos-soft);font-weight:700}
       return;
     }
     if (inField || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === "n" || e.key === "N") { e.preventDefault(); if (view === "input" && F && F.rid) return; go("input"); setTimeout(() => { const f = document.querySelector("#v-input input[type=text]"); if (f && !matchMedia("(pointer:coarse)").matches) f.focus(); }, 50); }
+    if (e.key === "n" || e.key === "N") { e.preventDefault(); if (view === "input" && F && F.rid) return; go("input"); const fo = () => { const f = $("inShop"); if (f && !matchMedia("(pointer:coarse)").matches && document.activeElement !== f) f.focus(); }; fo(); setTimeout(fo, 50); }
   });
   $("abBack").onclick = () => { const bb = document.querySelector("#v-" + view + " .backb"); if (bb) bb.click(); };
   document.addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (!o) return; const u = o.dataset.open; if (/^https?:/.test(u)) window.open(u, "_blank", "noopener"); else location.href = u; });
