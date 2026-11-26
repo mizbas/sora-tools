@@ -93,7 +93,11 @@ td.shopl{cursor:pointer;color:var(--primary);font-weight:600}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .lbl{display:block;font-size:12.5px;color:var(--sub);font-weight:600;margin:10px 0 4px}
 .in{width:100%!important;text-align:left!important}
-input[type=date].in{font:inherit;font-size:16px;padding:9px 11px;border:1px solid transparent;border-radius:var(--r-sm);background:var(--fill);color:var(--ink)}
+input[type=date].in,input[type=month].in{-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;min-width:0;max-width:100%;height:44px;margin:0;font:inherit;font-size:16px;line-height:24px;padding:9px 11px;border:1px solid transparent;border-radius:var(--r-sm);background:var(--fill);color:var(--ink)}
+input[type=date].in::-webkit-date-and-time-value,input[type=month].in::-webkit-date-and-time-value{text-align:left;margin:0;min-height:24px}
+input[type=date].in::-webkit-datetime-edit,input[type=month].in::-webkit-datetime-edit{padding:0}
+.f2>*{min-width:0}
+input.in:not([type=checkbox]):not([type=radio]){box-sizing:border-box;height:44px}
 .rows{margin-top:6px}
 .row{scroll-margin-top:8px;border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin:8px 0;background:#fff}
 .row .r1{display:grid;grid-template-columns:112px 1fr;gap:8px}
@@ -394,7 +398,7 @@ label.rc.bk.on{background:var(--primary-soft);border-color:#B9C7DD}
     <section class="card"><h2>月の予算</h2><p class="note" style="margin:0 0 4px">カテゴリごとに1か月の予算を入れると、ホームで使いすぎがわかります。0なら予算なし。</p><div id="budAvgBar"></div><div id="budgets"></div><p class="note" id="budTotal"></p></section>
     <section class="card"><h2>貯金の目標</h2><div id="goals"></div>
       <div class="f2"><div><label class="lbl" for="gName">目標の名前</label><input type="text" id="gName" class="in" placeholder="例：旅行"></div><div><label class="lbl" for="gTarget">目標金額</label><input type="number" id="gTarget" class="in" inputmode="numeric" step="1000" min="0" data-nomoney placeholder="300000"></div></div>
-      <label class="lbl" for="gDead">いつまでに（なくても大丈夫）</label><input type="month" id="gDead" class="in" style="font:inherit;font-size:16px;padding:9px 11px;border:0;border-radius:var(--r-sm);background:var(--fill)">
+      <label class="lbl" for="gDead">いつまでに（なくても大丈夫）</label><input type="month" id="gDead" class="in">
       <button type="button" class="ghostb wide" id="gAdd">目標を追加</button>
     </section>
     <section class="card"><h2>銀行・カードの明細を取り込む</h2>
