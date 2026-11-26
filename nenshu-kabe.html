@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!-- © そらのツール箱（https://mizbas.github.io/sora-tools/）。購入した方とそのご家族の利用に限ります。中身や購入コードを、ほかの人に渡したり公開したりしないでください。 -->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<title>年収の壁シミュレーター｜そらのツール箱</title>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+<script src="app.js"></script>
+<style>
+.hero{position:static}
+.hero .row{align-items:baseline}
+.badge.fuyou{background:#1F8A62}
+.badge.shaho{background:#2F63C9}
+.badge.kokuho{background:#B5452E}
+.delta{font-size:13px;margin-top:6px}
+.delta.bad{color:#FFB3AA}.delta.good{color:#9EE2C4}
+.slider{margin:14px 0 4px}
+input[type=range]{width:100%;accent-color:#7FA6EE;height:34px}
+.hours{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(255,255,255,.72)}
+.step{font:inherit;font-size:20px;font-weight:600;width:44px;height:40px;border:0;border-radius:var(--r-sm);background:rgba(255,255,255,.14);color:#fff;cursor:pointer}
+.full.compact{min-width:0}
+.hero .yen-hint{color:rgba(255,255,255,.65)}
+.find .inp{flex:1;min-width:0}
+.find .inp input{width:100%}
+.hours b{font-size:18px;color:#fff}
+.sub3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.sub3 div{background:rgba(255,255,255,.08);border-radius:var(--r-sm);padding:8px 10px}
+.sub3 span{display:block;font-size:11px;color:rgba(255,255,255,.7)}
+.sub3 b{font-size:15px;font-variant-numeric:tabular-nums}
+.verdict{display:grid;gap:10px}
+.v{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-md);border-left:3px solid var(--primary);background:var(--primary-soft)}
+.v .ic{font-size:18px;line-height:1.2}
+.v p{margin:0;font-size:13px;color:var(--sub);line-height:1.6}
+.v strong{display:block;font-size:15px;color:var(--ink);margin-bottom:2px}
+.v.ok{background:var(--pos-soft);border-left-color:var(--pos)}.v.ng{background:var(--neg-soft);border-left-color:var(--neg)}.v.go{background:var(--caution-soft);border-left-color:#D99A1E}
+canvas{width:100%;height:240px;display:block;touch-action:pan-y}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--sub);margin-top:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
+tr.sec td{color:var(--faint);font-size:11.5px;padding-top:14px;border-bottom:none}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.full{font-size:11.5px;min-width:640px}
+.full th{position:sticky;top:0;background:var(--surface);font-weight:600;color:var(--sub);text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+.full td{padding:6px 4px;text-align:right}
+.full tr.loss td{background:var(--neg-soft)}
+.full tr.best td{background:var(--pos-soft)}
+.find{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,.85);white-space:nowrap}
+.find input{flex:1;min-width:0;width:auto;font-size:15px;padding:6px 8px;border-radius:var(--r-sm);border:0;background:#fff}
+.find button{white-space:nowrap;font:inherit;font-size:12px;border:0;border-radius:var(--r-sm);padding:8px 10px;background:#fff;color:var(--navy);font-weight:700}
+body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+.fab{position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-top:1px solid var(--line);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.fab .inner{max-width:600px;margin:0 auto;display:flex;gap:10px}
+.fab .btn.ghost{flex:0 0 auto;padding:13px 16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><a href="./index.html">ツール一覧</a></header>
+  <h1>年収の壁シミュレーター</h1>
+  <p class="lead">2026年版。税金・社会保険・配偶者控除・配偶者手当をまとめて計算し、世帯の手取りが一番多くなる働き方を探します。入力内容はこの端末にだけ保存されます。分からない欄は「?」を押すと説明が出ます。</p>
+
+  <section class="card hero" id="hero">
+    <div class="row"><span class="label">世帯の手取り（年額）</span><span class="badge" id="stateBadge">扶養内</span></div>
+    <div class="big" id="bigHousehold">-<small>円</small></div>
+    <div class="delta" id="delta"></div>
+    <div class="slider">
+      <input type="range" id="hours" min="8" max="40" step="0.5" value="18" aria-label="週の労働時間">
+      <div class="hours"><button type="button" class="step" data-d="-0.5" aria-label="30分減らす">−</button><span>週 <b id="hoursLabel">18</b> 時間・年収 <b id="incomeLabel">-</b></span><button type="button" class="step" data-d="0.5" aria-label="30分増やす">＋</button></div>
+    </div>
+    <div class="find"><span>年収から探す</span><input type="number" id="findIncome" inputmode="numeric" placeholder="例 1300000" step="10000"><button type="button" id="findBtn">この年収以内にする</button></div>
+    <div class="sub3">
+      <div><span>本人の手取り</span><b id="takeLabel">-</b></div>
+      <div><span>社会保険料</span><b id="siLabel">-</b></div>
+      <div><span>将来の年金増</span><b id="nenkinLabel">-</b></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>結論</h2>
+    <div class="verdict" id="verdict"></div>
+  </section>
+
+  <section class="card">
+    <h2>グラフ（タップで時間を選択）</h2>
+    <canvas id="chart"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--primary)"></i>世帯の手取り</span>
+      <span><i style="background:#B7C2D3"></i><span id="altLabel">勤務先が社保の対象外なら</span></span>
+      <span><i style="background:var(--warn);opacity:.35;height:8px"></i>働き損ゾーン</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="num">1</span>働く人（パート・アルバイト）</h2>
+    <div class="field"><label>時給<small>円</small></label><input type="number" id="wage" inputmode="numeric" step="10"></div>
+    <div class="field"><label>通勤手当（月額）<small>税金はかからないが、社会保険と扶養の判定には入ります</small></label><input type="number" id="commute" inputmode="numeric" step="100"></div>
+    <div class="field"><label>勤務先は社会保険の適用対象？<small>2026年10月〜：従業員51人以上の会社など</small></label>
+      <div class="seg" data-key="covered"><button data-v="1">はい</button><button data-v="0">いいえ</button></div></div>
+    <div class="field"><label>年齢<small>40〜64歳は介護保険料がかかります</small></label>
+      <div class="seg" data-key="age40"><button data-v="0">40歳未満</button><button data-v="1">40〜64歳</button></div></div>
+    <div class="field"><label>お住まいの都道府県<small>協会けんぽの健康保険料率を使います</small></label><select id="pref"></select></div>
+    <details>
+      <summary>くわしい設定（国保・住民税・健保組合）</summary>
+      <div class="field"><label>健康保険料率（%）<small>健保組合の方だけ入力。空欄なら都道府県の料率</small></label><input type="number" id="healthRatePct" inputmode="decimal" step="0.01" placeholder="自動"></div>
+      <div class="field"><label>扶養から外れる年収<small>通常130万円（60歳以上などは180万円）</small></label><input type="number" id="fuyouLine" inputmode="numeric" step="10000"></div>
+      <div class="field"><label>住民税が非課税になる所得<small>多くの自治体で45万円（年収119万円）</small></label><input type="number" id="hikazei" inputmode="numeric" step="10000"></div>
+      <div class="field"><label>住民税の均等割（年額）</label><input type="number" id="kintou" inputmode="numeric" step="100"></div>
+      <div class="field"><label>国保の所得割率（%）<small>市区町村の国保料率（医療＋支援金＋介護分）</small></label><input type="number" id="kokuhoRatePct" inputmode="decimal" step="0.01"></div>
+      <div class="field"><label>国保の均等割（年額）</label><input type="number" id="kokuhoKin" inputmode="numeric" step="100"></div>
+      <div class="field"><label>国保の平等割（年額）</label><input type="number" id="kokuhoHei" inputmode="numeric" step="100"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2><span class="num">2</span>配偶者（主な稼ぎ手）</h2>
+    <button class="slip-open" id="useShared" type="button" style="display:none"></button>
+    <div class="field"><label>年収（額面）</label><input type="number" id="spouseIncome" inputmode="numeric" step="100000"></div>
+    <div class="field"><label>会社の配偶者手当（月額）<small>家族手当がなければ0</small></label><input type="number" id="allowance" inputmode="numeric" step="1000"></div>
+    <div class="field"><label>手当がもらえる年収の上限<small>会社の規定（例：103万円・130万円）</small></label><input type="number" id="allowanceLimit" inputmode="numeric" step="10000"></div>
+    <details>
+      <summary>くわしい設定</summary>
+      <div class="field"><label>社会保険料率の目安（%）<small>給与明細の社会保険料÷額面。不明なら15</small></label><input type="number" id="spouseSiRatePct" inputmode="decimal" step="0.1"></div>
+      <div class="field"><label>その他の所得控除（所得税）<small>生命保険料・iDeCo・扶養控除など</small></label><input type="number" id="spouseOther" inputmode="numeric" step="10000"></div>
+      <div class="field"><label>その他の所得控除（住民税）</label><input type="number" id="spouseOtherJ" inputmode="numeric" step="10000"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>この時間の内訳</h2>
+    <table id="breakdown"></table>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>週8〜40時間の一覧表を見る</summary>
+      <label class="slip-opt" style="display:flex;gap:8px;font-size:13px;padding:6px 0"><input type="checkbox" id="fullCols"> 社保・税・手当の内訳も表示（横にスクロール）</label>
+      <div class="scroll"><table class="full" id="fullTable"></table></div>
+    </details>
+  </section>
+
+
+  <section class="card faq">
+    <h2>よくある質問</h2>
+    <details><summary>106万円の壁はなくなったの？</summary><div class="a">2026年10月に、社会保険に入る条件のうち「月8.8万円（年収約106万円）以上」という賃金の条件がなくなりました。代わりに、<b>週の所定労働時間が20時間以上</b>で、勤務先が社会保険の適用対象なら、年収に関係なく加入します。だからこのツールは「年収」ではなく「週の労働時間」で比べています。</div></details>
+    <details><summary>「週20時間」はどう数える？</summary><div class="a">雇用契約書や労働条件通知書に書かれた<b>所定労働時間</b>で数えます。たまの残業は含みません。シフトが月単位で決まっている場合は「月の所定時間×12÷52」が目安です。</div></details>
+    <details><summary>勤務先が「社会保険の適用対象」か分からない</summary><div class="a">勤務先に「週20時間以上働くと社会保険に入りますか？」と聞くのが確実です。2026年10月時点では、主に厚生年金の加入者が51人以上の会社が対象です（51人未満でも、労使で合意して適用している会社もあります）。対象の会社は段階的に広がり、2035年10月にはすべての会社が対象になる予定です。迷ったら「はい」と「いいえ」を切り替えて両方の結果を見ておくと安心です（グラフの灰色の線がもう一方の結果です）。</div></details>
+    <details><summary>残業で年収が130万円を超えそう</summary><div class="a">2026年4月から、社会保険の扶養（130万円）は<b>残業代を除いた労働契約上の年収</b>で判定されるようになりました。契約上130万円未満なら、繁忙期の残業で一時的に超えても、すぐに扶養から外れるわけではありません。ただし、最初から残業ありきで契約を低く書いていた場合などは外れることがあります。</div></details>
+    <details><summary>社会保険に入るのは損？</summary><div class="a">目先の手取りは減りますが、保険料の半分は会社が負担し、<b>将来の厚生年金が増えます</b>（画面上部の「将来の年金増」）。病気やけがで休んだときの傷病手当金、出産で休んだときの出産手当金も受けられるようになります。「働き損ゾーン」を抜ける時間まで働けるなら、手取りも保障も増えます。</div></details>
+    <details><summary>年収130万円を少し超えたらどうなる？</summary><div class="a">勤務先の社会保険に入らない場合、配偶者の扶養から外れて、<b>国民健康保険と国民年金（年約21.5万円）</b>を自分で払うことになります。130万円を少し超えたあたりがいちばん手取りが落ちるので、グラフの赤い範囲で確認してください。</div></details>
+    <details><summary>配偶者の会社の家族手当はどう入れる？</summary><div class="a">配偶者の会社の給与規程（家族手当・配偶者手当）を確認して、月額と「もらえる年収の上限」を入れてください。「税法上の扶養」「年収103万円以下」「130万円未満」など会社によって条件が違います。手当が多い会社では、この壁がいちばん大きいこともあります。</div></details>
+    <details><summary>保険料調整制度ってなに？</summary><div class="a">2026年10月に始まった、新しく社会保険の対象になった人の手取りが急に減らないよう、会社が保険料の一部を負担できる特例です。使うかどうかは会社が決めるので、このツールには含めていません。勤務先が使う場合は、手取りの落ち込みはこのツールの結果より小さくなります。</div></details>
+    <details><summary>学生のアルバイトにも使える？</summary><div class="a">このツールは「配偶者の扶養に入っている人」向けです。昼間の学生は勤務先の社会保険の対象外で、19〜22歳の扶養の上限（社会保険150万円・税金の特定親族特別控除）も別の仕組みのため、正しく計算できません。</div></details>
+  </section>
+  <p class="note">
+    計算の前提：所得税は令和8年分（給与所得控除の最低74万円・基礎控除104万円）、住民税は令和9年度分、社会保険は2026年10月以降のルール（週20時間以上＋勤務先が適用対象で加入、週30時間以上は勤務先を問わず加入）、扶養は労働契約上の年収（時給×週時間×52週＋通勤手当）で判定。健康保険は協会けんぽ令和8年度、雇用保険は令和8年度の一般の事業の料率です。住民税の調整控除などは簡略化した目安で、賞与・残業代・副業・子どもの扶養控除、2026年10月新設の保険料調整制度は含みません。実際の金額は勤務先・健康保険・自治体の計算と異なる場合があります。<br>
+    出典：国税庁「令和8年分 年末調整のしかた」、財務省「令和8年度税制改正の大綱」、協会けんぽ「令和8年度都道府県単位保険料率」、厚生労働省「令和8年度雇用保険料率」、日本年金機構「国民年金保険料」（2026年11月確認）
+  </p>
+</div>
+
+<div class="fab"><div class="inner">
+  <button class="btn ghost" id="resetBtn">初期値</button>
+  <button class="btn" id="bestBtn">扶養内の最大に合わせる</button>
+</div></div>
+
+<script>/*! © そらのツール箱（https://mizbas.github.io/sora-tools/）。購入した方とそのご家族の利用に限ります。中身や購入コードを、ほかの人に渡したり公開したりしないでください。 */(function($){const v={kounen:.0915,koyou:.005,kaigo:.0162,kosodate:.0023,kokunenMonth:17920,kyuyoMin:74e4,juminKiso:43e4,nenkinRate:.005481},h=[["北海道",10.28],["青森県",9.85],["岩手県",9.51],["宮城県",10.1],["秋田県",10.01],["山形県",9.75],["福島県",9.5],["茨城県",9.52],["栃木県",9.82],["群馬県",9.68],["埼玉県",9.67],["千葉県",9.73],["東京都",9.85],["神奈川県",9.92],["新潟県",9.21],["富山県",9.59],["石川県",9.7],["福井県",9.71],["山梨県",9.55],["長野県",9.63],["岐阜県",9.8],["静岡県",9.61],["愛知県",9.93],["三重県",9.77],["滋賀県",9.88],["京都府",9.89],["大阪府",10.13],["兵庫県",10.12],["奈良県",9.91],["和歌山県",10.06],["鳥取県",9.86],["島根県",9.94],["岡山県",10.05],["広島県",9.78],["山口県",10.15],["徳島県",10.24],["香川県",10.02],["愛媛県",9.98],["高知県",10.05],["福岡県",10.11],["佐賀県",10.55],["長崎県",10.06],["熊本県",10.08],["大分県",10.08],["宮崎県",9.77],["鹿児島県",10.13],["沖縄県",9.44]],x=[[0,58e3],[63e3,68e3],[73e3,78e3],[83e3,88e3],[93e3,98e3],[101e3,104e3],[107e3,11e4],[114e3,118e3],[122e3,126e3],[13e4,134e3],[138e3,142e3],[146e3,15e4],[155e3,16e4],[165e3,17e4],[175e3,18e4],[185e3,19e4],[195e3,2e5],[21e4,22e4],[23e4,24e4],[25e4,26e4],[27e4,28e4],[29e4,3e5],[31e4,32e4],[33e4,34e4],[35e4,36e4],[37e4,38e4],[395e3,41e4],[425e3,44e4],[455e3,47e4],[485e3,5e5],[515e3,53e4],[545e3,56e4],[575e3,59e4],[605e3,62e4],[635e3,65e4],[665e3,68e4],[695e3,71e4],[73e4,75e4]],C=[[0,104e4],[4890001,67e4],[6550001,62e4],[23500001,48e4],[24000001,32e4],[24500001,16e4],[25000001,0]],c=[[0,38e4,33e4,5e4],[620001,38e4,33e4,5e4],[950001,36e4,33e4,3e4],[1000001,31e4,31e4,0],[1050001,26e4,26e4,0],[1100001,21e4,21e4,0],[1150001,16e4,16e4,0],[1200001,11e4,11e4,0],[1250001,6e4,6e4,0],[1300001,3e4,3e4,0],[1330001,0,0,0]],H=(i,a)=>{let y=i[0];for(const E of i)if(a>=E[0])y=E;else break;return y},w=(i,a)=>Math.floor(i/a+1e-9)*a,r=(i,a)=>Math.ceil(i/a-1e-9)*a;function D(i){const a=i<=18e5?i*.4-1e5:i<=36e5?i*.3+8e4:i<=66e5?i*.2+44e4:i<=85e5?i*.1+11e5:195e4;return Math.max(0,i-Math.max(v.kyuyoMin,a))}function R(i){const a=[[195e4,.05,0],[33e5,.1,97500],[695e4,.2,427500],[9e6,.23,636e3],[18e6,.33,1536e3],[4e7,.4,2796e3]];for(const[y,E,g]of a)if(i<=y)return w((i*E-g)*1.021,100);return w((i*.45-4796e3)*1.021,100)}const j={wage:1200,commute:0,covered:!0,age40:!1,pref:"大阪府",healthRate:null,fuyouLine:13e5,hikazei:45e4,kintou:5e3,kokuhoRate:.1,kokuhoKin:5e4,kokuhoHei:3e4,spouseIncome:5e6,spouseSiRate:.15,spouseOther:0,spouseOtherJ:0,allowance:0,allowanceLimit:13e5};function F(i){if(i.healthRate!=null&&i.healthRate!=="")return Number(i.healthRate);const a=h.find(y=>y[0]===i.pref);return(a?a[1]:10)/100}function s(i){const a=Object.assign({},j,i),y=F(a),E=Number(a.spouseIncome),g=D(E),O=Math.round(E*a.spouseSiRate),p=H(C,g)[1],T=g<=9e6?1:g<=95e5?2/3:g<=1e7?1/3:0,A=[];for(let l=8;l<=40.0001;l+=.5){const f=Math.round(l*2)/2,k=Math.round(a.wage*f*52),B=a.commute*12,m=k+B,b=f>=30||f>=20&&a.covered?"shaho":m>=a.fuyouLine?"kokuho":"fuyou",U=m/12,L=H(x,U)[1],d=Math.min(Math.max(L,88e3),65e4),P=b==="shaho"?Math.round(L*(y+(a.age40?v.kaigo:0)+v.kosodate)/2)*12:0,S=b==="shaho"?Math.round(d*v.kounen)*12:0,N=f>=20?Math.round(m*v.koyou):0,M=D(k),q=b==="kokuho"?Math.round(Math.max(0,M-v.juminKiso)*a.kokuhoRate+a.kokuhoKin+a.kokuhoHei):0,J=b==="kokuho"?v.kokunenMonth*12:0,W=P+S+N+q+J,Y=R(w(Math.max(0,M-W-H(C,M)[1]),1e3)),_=w(Math.max(0,M-W-v.juminKiso),1e3),G=M<=a.hikazei?0:Math.max(0,w(_*.1-Math.min(5e4,_)*.05,100))+a.kintou,Q=k-W-Y-G,V=k<=a.allowanceLimit?a.allowance*12:0,X=H(c,M),Z=T===0?0:r(X[1]*T,1e4),t0=T===0?0:r(X[2]*T,1e4),e0=R(w(Math.max(0,g-O-p-a.spouseOther-Z),1e3)),z=w(Math.max(0,g-O-v.juminKiso-a.spouseOtherJ-t0),1e3),o0=5e4+(T>0?X[3]:0),a0=z<=2e6?Math.min(o0,z)*.05:Math.max(2500,(o0-(z-2e6))*.05),n0=Math.max(0,w(z*.1-a0,100))+a.kintou,s0=E-O-e0-n0,l0=Q+s0+V,c0=b==="shaho"?Math.round(d*12*v.nenkinRate):0;A.push({hours:f,income:k,commuteYear:B,judge:m,state:b,ken:P,kou:S,koy:N,kokuho:q,kokunen:J,si:W,shotoku:M,incomeTax:Y,residentTax:G,take:Q,allowance:V,spouseDeduction:Z,spouseDeductionJ:t0,spouseIncomeTax:e0,spouseResidentTax:n0,spouseTake:s0,household:l0,nenkin:c0})}const K=A.filter(l=>l.state==="fuyou"),t=K.length?Math.max(...K.map(l=>l.household)):null,n=t==null?null:K.find(l=>l.household===t),o=A.filter(l=>l.state!=="fuyou"),e=o.length?o[0].hours:null,u=t==null?null:o.find(l=>l.household>t)||null;return{rows:A,best:t,bestRow:n,wall:e,recoverHours:u?u.hours:null,recoverRow:u,healthRate:y}}const I={simulate:s,DEFAULTS:j,PREFS:h,RATES:v,kyuyoShotoku:D,incomeTax:R};typeof module<"u"&&module.exports?module.exports=I:$.KabeCalc=I})(typeof window<"u"?window:globalThis),function(){const $=window.KabeCalc,v="sora.nenshu-kabe.v1",h=t=>t==null?"-":Math.round(t).toLocaleString("ja-JP"),x=t=>(Math.round(t/1e3)/10).toLocaleString("ja-JP",{maximumFractionDigits:1})+"万",C={fuyou:"扶養内",shaho:"勤務先の社会保険",kokuho:"国保＋国民年金"},c=t=>document.getElementById(t),H=["wage","commute","fuyouLine","hikazei","kintou","kokuhoKin","kokuhoHei","spouseIncome","allowance","allowanceLimit","spouseOther","spouseOtherJ"],w={healthRatePct:"healthRate",kokuhoRatePct:"kokuhoRate",spouseSiRatePct:"spouseSiRate"};let r=D();function D(){let t={};try{t=JSON.parse(localStorage.getItem(v)||"{}")}catch{}return Object.assign({},$.DEFAULTS,{hours:18},t)}function R(){try{localStorage.setItem(v,JSON.stringify(r))}catch{}}const j=c("pref");$.PREFS.forEach(([t,n])=>{const o=document.createElement("option");o.value=t,o.textContent=t,j.appendChild(o)});function F(){H.forEach(t=>c(t).value=r[t]),Object.entries(w).forEach(([t,n])=>{const o=r[n];c(t).value=o==null||o===""?"":+(o*100).toFixed(3)}),j.value=r.pref,document.querySelectorAll(".seg").forEach(t=>{const n=r[t.dataset.key]?"1":"0";t.querySelectorAll("button").forEach(o=>o.classList.toggle("on",o.dataset.v===n))}),c("hours").value=r.hours}H.forEach(t=>c(t).addEventListener("input",n=>{const o=parseFloat(n.target.value);r[t]=isNaN(o)?0:o,i()})),Object.entries(w).forEach(([t,n])=>c(t).addEventListener("input",o=>{const e=parseFloat(o.target.value);r[n]=isNaN(e)?n==="healthRate"?null:0:e/100,i()})),j.addEventListener("change",t=>{r.pref=t.target.value,i()}),document.querySelectorAll(".seg").forEach(t=>t.addEventListener("click",n=>{const o=n.target.closest("button");o&&(r[t.dataset.key]=o.dataset.v==="1",F(),i())})),c("hours").addEventListener("input",t=>{r.hours=parseFloat(t.target.value),a(),R()}),c("resetBtn").addEventListener("click",()=>{r=Object.assign({},$.DEFAULTS,{hours:18}),F(),i()}),c("bestBtn").addEventListener("click",()=>{s.bestRow&&(r.hours=s.bestRow.hours,c("hours").value=r.hours,a(),R(),window.scrollTo({top:0,behavior:"smooth"}))}),document.querySelectorAll(".step").forEach(t=>t.addEventListener("click",()=>{r.hours=Math.min(40,Math.max(8,r.hours+parseFloat(t.dataset.d))),c("hours").value=r.hours,a(),R()})),c("fullCols").addEventListener("change",O),function(){const t=window.SoraUI&&SoraUI.getShared(),n=c("useShared");!t||!(t.salary>0)||(n.style.display="",n.textContent=`ほかのツールで入力した年収（${SoraUI.readable(t.salary)}）を使う`,n.onclick=()=>{r.spouseIncome=t.salary,t.socialInsurance>0&&(r.spouseSiRate=Math.round(t.socialInsurance/t.salary*1e3)/1e3),F(),i(),n.textContent="年収と社会保険料率を読み込みました"})}();let s,I;function i(){s=$.simulate(r),I=$.simulate(Object.assign({},r,{covered:!r.covered})),a(),R()}function a(){const t=s.rows.find(e=>e.hours===r.hours)||s.rows[0];c("hoursLabel").textContent=t.hours,c("incomeLabel").textContent=x(t.income)+"円",c("bigHousehold").innerHTML=h(t.household)+"<small>円</small>";const n=c("stateBadge");n.textContent=C[t.state],n.className="badge "+t.state,c("takeLabel").textContent=x(t.take),c("siLabel").textContent=x(t.si),c("nenkinLabel").textContent=t.nenkin?"+"+h(t.nenkin)+"円/年":"-";const o=c("delta");if(s.best!=null&&t.state!=="fuyou"){const e=t.household-s.best;o.textContent=e<0?"扶養内の最大より "+h(-e)+" 円少ない（働き損）":"扶養内の最大より "+h(e)+" 円多い",o.className="delta "+(e<0?"bad":"good")}else if(s.best!=null&&t.state==="fuyou"){const e=s.best-t.household;o.textContent=e>0?"扶養内のままあと "+h(e)+" 円増やせます":"扶養内で手取りが最大の働き方です",o.className="delta good"}else o.textContent="";y(),E(t),O(),T()}function y(){const t=[];if(s.bestRow&&t.push(`<div class="v ok"><div class="ic">✓</div><div><strong>扶養内なら 週${s.bestRow.hours}時間（年収${x(s.bestRow.income)}円）</strong><p>世帯の手取りは ${h(s.best)} 円。扶養内ではこれが最大です。</p></div></div>`),s.wall!=null&&s.recoverHours!=null){const n=s.recoverHours-.5;t.push(`<div class="v ng"><div class="ic">!</div><div><strong>週${s.wall}〜${n}時間は働き損</strong><p>${s.rows.find(o=>o.hours===s.wall).state==="shaho"?"勤務先の社会保険":"国保と国民年金"}の負担で、扶養内より世帯の手取りが減ります。</p></div></div>`),t.push(`<div class="v go"><div class="ic">→</div><div><strong>壁を越えるなら 週${s.recoverHours}時間以上（年収${x(s.recoverRow.income)}円〜）</strong><p>ここから扶養内の最大を上回ります。${s.recoverRow.nenkin?"社会保険に入ると将来の厚生年金が1年あたり約"+h(s.recoverRow.nenkin)+"円増えます。":""}</p></div></div>`)}else s.wall!=null?t.push(`<div class="v ng"><div class="ic">!</div><div><strong>週${s.wall}時間以上は、40時間まで働いても扶養内の最大に届きません</strong><p>時給や条件を変えて比べてみてください。</p></div></div>`):t.push('<div class="v ok"><div class="ic">✓</div><div><strong>週40時間まで社会保険の壁はありません</strong><p>働くほど世帯の手取りは増えます。</p></div></div>');c("verdict").innerHTML=t.join("")}function E(t){const n=(e,u,l)=>`<tr class="${l||""}"><td>${e}</td><td>${u}</td></tr>`;let o="";o+=n("本人","","sec"),o+=n("年収（給与）",h(t.income)+" 円"),o+=n("社会保険の状態",C[t.state]),t.ken&&(o+=n("健康保険・介護・子育て支援金","−"+h(t.ken)+" 円")),t.kou&&(o+=n("厚生年金","−"+h(t.kou)+" 円")),t.koy&&(o+=n("雇用保険","−"+h(t.koy)+" 円")),t.kokuho&&(o+=n("国民健康保険","−"+h(t.kokuho)+" 円")),t.kokunen&&(o+=n("国民年金","−"+h(t.kokunen)+" 円")),o+=n("所得税",t.incomeTax?"−"+h(t.incomeTax)+" 円":"0 円"),o+=n("住民税",t.residentTax?"−"+h(t.residentTax)+" 円":"0 円"),o+=n("本人の手取り",h(t.take)+" 円","total"),o+=n("配偶者","","sec"),o+=n("配偶者（特別）控除（所得税）",h(t.spouseDeduction)+" 円"),o+=n("配偶者の所得税＋住民税","−"+h(t.spouseIncomeTax+t.spouseResidentTax)+" 円"),t.allowance&&(o+=n("会社の配偶者手当","+"+h(t.allowance)+" 円")),o+=n("配偶者の手取り（手当込み）",h(t.spouseTake+t.allowance)+" 円","total"),o+=n("","","sec"),o+=n("世帯の手取り",h(t.household)+" 円","total"),c("breakdown").innerHTML=o}let g=!1;document.querySelector("#fullTable").closest("details").addEventListener("toggle",t=>{g=t.target.open,g&&O()});function O(){if(!g)return;const t=c("fullCols").checked;if(c("fullTable").classList.toggle("compact",!t),!t){let e="<tr><th>週h</th><th>年収</th><th>状態</th><th>世帯手取り</th><th>増減</th></tr>",u=null;s.rows.forEach(l=>{const f=s.best!=null&&l.state!=="fuyou"&&l.household<s.best,k=s.bestRow&&l.hours===s.bestRow.hours;e+=`<tr class="${f?"loss":k?"best":""}"><td>${l.hours}</td><td>${x(l.income)}</td><td>${C[l.state].replace("勤務先の","").replace("＋国民年金","")}</td><td>${h(l.household)}</td><td>${u==null?"":h(l.household-u)}</td></tr>`,u=l.household}),c("fullTable").innerHTML=e;return}let n="<tr><th>週h</th><th>年収</th><th>状態</th><th>社保</th><th>税</th><th>本人手取り</th><th>配偶者手当</th><th>世帯手取り</th><th>増減</th></tr>",o=null;s.rows.forEach(e=>{const u=s.best!=null&&e.state!=="fuyou"&&e.household<s.best,l=s.bestRow&&e.hours===s.bestRow.hours;n+=`<tr class="${u?"loss":l?"best":""}"><td>${e.hours}</td><td>${h(e.income)}</td><td>${C[e.state].replace("勤務先の","")}</td><td>${h(e.si)}</td><td>${h(e.incomeTax+e.residentTax)}</td><td>${h(e.take)}</td><td>${h(e.allowance)}</td><td>${h(e.household)}</td><td>${o==null?"":h(e.household-o)}</td></tr>`,o=e.household}),c("fullTable").innerHTML=n}const p=c("chart");function T(){const t=window.devicePixelRatio||1,n=p.clientWidth,o=p.clientHeight;p.width=n*t,p.height=o*t;const e=p.getContext("2d");e.setTransform(t,0,0,t,0,0),e.clearRect(0,0,n,o);const u={l:44,r:10,t:12,b:26},l=s.rows.map(d=>d.household).concat(I.rows.map(d=>d.household));let f=Math.min(...l),k=Math.max(...l);const B=k-f||1;f-=B*.05,k+=B*.05;const m=d=>u.l+(d-8)/32*(n-u.l-u.r),b=d=>u.t+(1-(d-f)/(k-f))*(o-u.t-u.b);e.font="10px sans-serif",e.fillStyle="#8A94A3",e.strokeStyle="#E2E7EE",e.lineWidth=1;for(let d=0;d<=4;d++){const P=f+(k-f)*d/4,S=b(P);e.beginPath(),e.moveTo(u.l,S),e.lineTo(n-u.r,S),e.stroke(),e.textAlign="right",e.fillText(Math.round(P/1e4)+"万",u.l-6,S+3)}if(e.textAlign="center",[8,16,20,24,30,40].forEach(d=>e.fillText(d+"h",m(d),o-8)),s.wall!=null){const d=s.recoverHours!=null?s.recoverHours-.25:40;e.fillStyle="rgba(207,59,50,.10)",e.fillRect(m(s.wall-.25),u.t,m(d)-m(s.wall-.25),o-u.t-u.b)}s.best!=null&&(e.setLineDash([4,4]),e.strokeStyle="#0E8A5F",e.beginPath(),e.moveTo(u.l,b(s.best)),e.lineTo(n-u.r,b(s.best)),e.stroke(),e.setLineDash([]));const U=(d,P,S)=>{e.strokeStyle=P,e.lineWidth=S,e.beginPath(),d.forEach((N,M)=>{const q=m(N.hours),J=b(N.household);M?e.lineTo(q,J):e.moveTo(q,J)}),e.stroke()};U(I.rows,"#B7C2D3",1.5),U(s.rows,"#1F5EDB",2.5),s.bestRow&&(e.fillStyle="#0E8A5F",e.beginPath(),e.arc(m(s.bestRow.hours),b(s.best),4.5,0,7),e.fill());const L=s.rows.find(d=>d.hours===r.hours);L&&(e.strokeStyle="#14284B",e.lineWidth=2,e.beginPath(),e.moveTo(m(L.hours),u.t),e.lineTo(m(L.hours),o-u.b),e.stroke(),e.fillStyle="#14284B",e.beginPath(),e.arc(m(L.hours),b(L.household),5.5,0,7),e.fill()),c("altLabel").textContent=r.covered?"勤務先が社保の対象外なら":"勤務先が社保の対象なら",p._X=m,p._pad=u}p.addEventListener("click",t=>{const n=p.getBoundingClientRect(),o=t.clientX-n.left,e=p._pad,u=p.clientWidth;let l=8+(o-e.l)/(u-e.l-e.r)*32;l=Math.min(40,Math.max(8,Math.round(l*2)/2)),r.hours=l,c("hours").value=l,a(),R()}),window.addEventListener("resize",T);const A={wage:"雇用契約で決まっている<b>基本の時給</b>。深夜・休日の割増分は入れません。時給が途中で上がった場合は、これからの時給で考えるのがおすすめです。",commute:"通勤手当（交通費）の<b>月額</b>。税金はかかりませんが、社会保険料の計算と扶養（130万円）の判定には含まれます。",covered:"勤務先に「週20時間以上働くと社会保険に入りますか？」と聞くと確実です。2026年10月時点は、主に厚生年金の加入者が<b>51人以上の会社</b>が対象。迷ったら両方を切り替えて比べてください（グラフの灰色の線がもう一方）。",age40:"40歳になった月から64歳まで、健康保険料に<b>介護保険料</b>が上乗せされます。",pref:"協会けんぽの都道府県ごとの健康保険料率（令和8年度）を使います。大企業などの<b>健康保険組合</b>に入る場合は、「くわしい設定」の健康保険料率に組合の料率（本人負担×2）を入れてください。",healthRatePct:"健保組合の料率（会社と本人の合計）。給与明細の健康保険料÷標準報酬月額×2で計算できます。空欄なら都道府県の料率。",fuyouLine:"配偶者の健康保険の扶養に入れる年収の上限。通常<b>130万円未満</b>、60歳以上や障害のある方は180万円未満です。",hikazei:"住民税（所得割）がかからない所得の上限。多くの市区町村で45万円（給与だけなら年収119万円）。お住まいの市区町村のサイトで「住民税 非課税 基準」を確認できます。",kintou:"住民税の均等割。多くの地域で年5,000円（森林環境税1,000円を含む）。",kokuhoRatePct:"勤務先の社会保険に入らず扶養から外れたときの国民健康保険料の「所得割率」（医療分＋支援金分＋介護分の合計）。市区町村のサイトの「国民健康保険料の計算方法」に載っています。",kokuhoKin:"国保の「均等割」（1人あたり年額、医療分＋支援金分＋介護分の合計）。",kokuhoHei:"国保の「平等割」（1世帯あたり年額）。平等割がない市区町村は0。",spouseIncome:"配偶者（主な稼ぎ手）の<b>額面の年収</b>（源泉徴収票の「支払金額」）。配偶者控除・配偶者特別控除による税金の変化を計算します。",allowance:"配偶者の会社の<b>家族手当・配偶者手当</b>の月額。会社の給与規程を確認してください。なければ0。",allowanceLimit:"手当がもらえる、あなたの年収の上限（会社の規程）。「103万円以下」「130万円未満」など会社ごとに違います。",spouseSiRatePct:"配偶者の給与明細の社会保険料（健康保険＋厚生年金＋雇用保険）÷額面。分からなければ15%のままでOK。",spouseOther:"生命保険料控除・iDeCo・扶養控除など、配偶者控除以外の所得控除（所得税）。分からなければ0。",spouseOtherJ:"上と同じものの住民税での金額。分からなければ0。"};function K(){document.querySelectorAll(".card .field").forEach(t=>{if(t.dataset.helped)return;const n=t.querySelector("input[id], select[id]"),o=t.querySelector(".seg[data-key]"),e=n?n.id:o?o.dataset.key:null;if(!e||!A[e])return;t.dataset.helped="1";const u=t.querySelector("label"),l=u.querySelector("small"),f=document.createElement("button");f.type="button",f.className="qbtn",f.textContent="?",l?u.insertBefore(f,l):u.appendChild(f);const k=document.createElement("div");k.className="help",k.innerHTML=A[e],t.appendChild(k),f.onclick=()=>{f.classList.toggle("on"),k.classList.toggle("on")}})}c("findBtn").addEventListener("click",()=>{const t=parseFloat(c("findIncome").value);if(!t||!r.wage)return;let n=Math.floor(t/(r.wage*52)*2+1e-9)/2;n=Math.min(40,Math.max(8,n)),r.hours=n,c("hours").value=n,a(),R()}),K(),F(),i()}();</script>
+</body>
+</html>
