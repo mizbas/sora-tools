@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<title>確定申告いる？いらない？会社員のかんたん判定 2026年分（無料）｜そらのツール箱</title>
+<meta name="description" content="会社員が2026年分（令和8年分）の確定申告をしないといけないか、したほうが得かを、はい・いいえで答えるだけで判定。副業20万円、医療費控除、ふるさと納税、住宅ローン控除1年目、年の途中の退職に対応。登録不要。">
+<meta property="og:title" content="確定申告いる？いらない？会社員のかんたん判定 2026年分（無料）">
+<meta property="og:description" content="はい・いいえで答えるだけで、確定申告が必要か・したほうが得かがわかります。">
+<meta property="og:image" content="https://mizbas.github.io/sora-tools/og-hub.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css?v=mwxws8iu">
+<script src="app.js?v=mwxws8iu"></script>
+<style>
+.q{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.q:first-of-type{border-top:0}
+.q label{font-size:14.5px;font-weight:500;line-height:1.5}.q small{display:block;color:var(--faint);font-size:11.5px;margin-top:2px;line-height:1.5;font-weight:400}
+.q[hidden]{display:none}
+.res{list-style:none;padding:0;margin:4px 0 0}
+.res li{padding:10px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.7}.res li:first-child{border-top:0}
+.res b{display:block;font-size:14.5px}
+.res a{font-weight:600}
+.cta{display:block;text-align:center;text-decoration:none;font-weight:700;font-size:15px;color:#fff;background:var(--primary);border-radius:var(--r-md);padding:14px;margin:12px 0 6px}
+.cta2{display:block;text-align:center;text-decoration:none;font-weight:700;font-size:14px;color:var(--primary);border:1px solid #B9C7DD;background:#fff;border-radius:var(--r-md);padding:12px;margin:6px 0}
+.more{font-size:13.5px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="no-print"><a href="./index.html">ツール一覧</a></header>
+  <h1>確定申告いる？いらない？会社員のかんたん判定 2026年分</h1>
+  <p class="lead">会社で年末調整を受けている人向けです。はい・いいえで答えるだけで、2026年分（令和8年分）の確定申告を<b>しないといけないか、したほうが得か</b>がわかります。無料・登録不要です。</p>
+
+  <section class="card hero">
+    <div class="row"><span class="label">判定</span></div>
+    <div class="big" id="heroAns" style="font-size:26px">-</div>
+    <div class="sub" id="heroSub"></div>
+  </section>
+
+  <section class="card" id="qs">
+    <h2>質問に答える</h2>
+    <div class="q" data-k="over20m"><label>給与の年収（額面）が2,000万円を超える</label><div class="seg"><button data-v="0">いいえ</button><button data-v="1">はい</button></div></div>
+    <div class="q" data-k="multi"><label>給与を2か所以上からもらっている<small>掛け持ちのアルバイトなど。年末調整は1か所でしか受けられません</small></label><div class="seg"><button data-v="0">いいえ</button><button data-v="1">はい</button></div></div>
+    <div class="q" data-k="side"><label>給与以外のもうけが1年で20万円を超える<small>副業・フリマでの転売・ブログ収入・年金・競馬や競艇の払戻金など。「収入−経費」の額で、競馬などは（もうけ−50万円）÷2で考えます。源泉徴収ありの特定口座の株・投資信託は入れません</small></label><div class="seg"><button data-v="0">いいえ</button><button data-v="1">はい</button></div></div>
+    <div class="q" data-k="multi20" hidden><label>2か所目の給与（年末調整していない方）と、給与以外のもうけを足すと20万円を超える</label><div class="seg"><button data-v="0">いいえ</button><button data-v="1">はい</button></div></div>
+    <div class="q" data-k="taishoku"><label>今年の途中で会社を辞めて、年末までに再就職していない<small>年末調整を受けていないので、払いすぎた税金が戻ることが多いです</small></label><div class="seg"><button data-v="0">いいえ</button><button data-v="1">はい</button></div></div>
+    <div class="q" data-k="loan"><label>住宅ローンで家を買って、今年から住み始めた<small>住宅ローン控除は、1年目だけ確定申告が必要です（2年目からは年末調整）</small></label><div class="seg"><button data-v="0">いいえ</button><button data-v="1">はい</button></div></div>
+    <div class="q" data-k="iryo"><label>家族の分も合わせて、医療費が10万円を超えた<small>保険で戻った分は引きます。所得が200万円未満なら所得の5%を超えればOK。市販薬が1.2万円を超えた場合も「はい」</small></label><div class="seg"><button data-v="0">いいえ</button><button data-v="1">はい</button></div></div>
+    <div class="q" data-k="furusato"><label>ふるさと納税をした</label><div class="seg"><button data-v="0">いいえ</button><button data-v="1">はい</button></div></div>
+    <div class="q" data-k="onestop" hidden><label>寄附先は5自治体以内で、全部にワンストップ特例の申請書を出した<small>同じ自治体に何回寄附しても1つと数えます</small></label><div class="seg"><button data-v="1">はい</button><button data-v="0">いいえ・わからない</button></div></div>
+  </section>
+
+  <section class="card">
+    <h2>あなたの場合</h2>
+    <ul class="res" id="res"></ul>
+  </section>
+
+  <section class="card">
+    <h2>いくら得するか計算する</h2>
+    <a class="cta2" href="iryohi-kantan.html">医療費控除でいくら戻る？（無料）</a>
+    <a class="cta2" href="furusato-kantan.html">ふるさと納税 上限かんたんチェック（無料）</a>
+    <a class="cta" href="https://note.com/tmsora8496/n/n6f343b0e313f" target="_blank" rel="noopener">家族の分まで正確に計算できるツールを見る</a>
+  </section>
+
+  <section class="card more">
+    <h2>2026年分の確定申告のきほん</h2>
+    <p style="margin:0 0 6px">期間は<b>2027年2月16日（火）〜3月15日（月）</b>です。税金が戻るだけの申告（還付申告）なら、2027年1月から5年間出せます。</p>
+    <p style="margin:0 0 6px">給与以外のもうけが20万円以下で確定申告がいらない人も、<b>住民税の申告は必要</b>です。お住まいの市区町村に出します。</p>
+    <p style="margin:0">医療費控除などで確定申告をすると、ふるさと納税のワンストップ特例は使えなくなります。確定申告にふるさと納税の寄附もいっしょに書いてください。</p>
+  </section>
+
+  <p class="note">国税庁タックスアンサーNo.1900（給与所得者で確定申告が必要な人）をもとに、会社員のよくあるケースだけを判定しています。給与が2か所の人の少額の例外、同族会社の役員、退職金などは判定に入っていません。くわしくは税務署や国税庁のサイトで確かめてください。</p>
+</div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const KEY = "sora.kakutei-hantei.2026";
+  let A = {};
+  try { A = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
+  const show = (k, on) => { document.querySelector(`.q[data-k="${k}"]`).hidden = !on; if (!on) delete A[k]; };
+  function update() {
+    try { localStorage.setItem(KEY, JSON.stringify(A)); } catch (e) {}
+    show("multi20", A.multi === "1"); show("onestop", A.furusato === "1");
+    document.querySelectorAll(".q").forEach(q => q.querySelectorAll("button").forEach(b => b.classList.toggle("on", A[q.dataset.k] === b.dataset.v)));
+    const must = [], gain = [], note = [];
+    if (A.over20m === "1") must.push(["給与が2,000万円を超えている", "年末調整では税金が確定しないので、確定申告が必要です。"]);
+    if (A.multi !== "1" && A.side === "1") must.push(["給与以外のもうけが20万円を超えている", "副業などのもうけを申告して、税金を納めます。"]);
+    if (A.multi === "1" && A.multi20 === "1") must.push(["2か所目の給与＋ほかのもうけが20万円を超えている", "年末調整していない給与の分を申告します。"]);
+    if (A.taishoku === "1") gain.push(["年の途中で辞めて、年末調整を受けていない", "給与から引かれた所得税は多めなので、申告すると戻ることが多いです。前の会社の源泉徴収票を用意してください。"]);
+    if (A.loan === "1") gain.push(["住宅ローン控除の1年目", "1年目は確定申告をしないと控除が受けられません。"]);
+    if (A.iryo === "1") gain.push(["医療費が多かった", `医療費控除で税金が戻ります。<a href="iryohi-kantan.html">いくら戻るか計算する</a>`]);
+    if (A.furusato === "1" && A.onestop === "0") gain.push(["ふるさと納税でワンストップ特例を使えない", "6自治体以上に寄附した・申請書を出していない場合は、確定申告をしないと税金が減りません。"]);
+    if (A.multi !== "1" && A.side === "0") note.push(["給与以外のもうけが20万円以下でも", "所得税の確定申告はいりませんが、住民税の申告は必要です（市区町村へ）。"]);
+    const filing = must.length || gain.length;
+    if (A.furusato === "1" && A.onestop === "1" && filing) note.push(["ふるさと納税も確定申告に書く", "確定申告をすると、ワンストップ特例の申請は使われなくなります。寄附の受領証明書を見て、全部の寄附を申告に入れてください。"]);
+    const answered = Object.keys(A).length;
+    if (!answered) { $("heroAns").textContent = "-"; $("heroSub").textContent = "上の質問に答えてください"; }
+    else if (must.length) { $("heroAns").textContent = "確定申告が必要です"; $("heroSub").textContent = "2027年2月16日〜3月15日に申告します"; }
+    else if (gain.length) { $("heroAns").textContent = "申告したほうが得です"; $("heroSub").textContent = "義務ではありませんが、申告すると税金が戻ったり減ったりします"; }
+    else { $("heroAns").textContent = "申告はいらなそうです"; $("heroSub").textContent = "会社の年末調整で終わる見込みです"; }
+    const li = (arr, tag) => arr.map(([t, d]) => `<li><b>${tag}${t}</b>${d}</li>`).join("");
+    $("res").innerHTML = answered ? (li(must, "【必要】") + li(gain, "【得】") + li(note, "【注意】") || "<li>答えた範囲では、年末調整で終わる見込みです。</li>") : "<li>質問に答えると、ここに理由が出ます。</li>";
+  }
+  document.querySelectorAll(".q").forEach(q => q.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; A[q.dataset.k] = b.dataset.v; update(); }));
+  update();
+})();
+</script>
+</body>
+</html>

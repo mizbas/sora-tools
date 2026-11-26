@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://mizbas.github.io/sora-tools/</loc><lastmod>2026-11-25</lastmod></url>
+  <url><loc>https://mizbas.github.io/sora-tools/</loc><lastmod>2026-11-27</lastmod></url>
   <url><loc>https://mizbas.github.io/sora-tools/kakeibo-demo.html</loc><lastmod>2026-11-25</lastmod></url>
   <url><loc>https://mizbas.github.io/sora-tools/furusato-kantan.html</loc><lastmod>2026-11-25</lastmod></url>
   <url><loc>https://mizbas.github.io/sora-tools/privacy.html</loc><lastmod>2026-11-25</lastmod></url>
+  <url><loc>https://mizbas.github.io/sora-tools/kakutei-hantei.html</loc><lastmod>2026-11-27</lastmod></url>
+  <url><loc>https://mizbas.github.io/sora-tools/iryohi-kantan.html</loc><lastmod>2026-11-27</lastmod></url>
+  <url><loc>https://mizbas.github.io/sora-tools/haigusha-kantan.html</loc><lastmod>2026-11-27</lastmod></url>
 </urlset>

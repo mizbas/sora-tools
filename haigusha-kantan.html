@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<title>配偶者控除・配偶者特別控除はいくら？かんたん計算 2026（無料）｜そらのツール箱</title>
+<meta name="description" content="自分と配偶者の年収を入れるだけで、2026年（令和8年分）の配偶者控除・配偶者特別控除の額と、所得税がいくら減るかの目安がわかる無料ツール。パートの年収ごとの早見表つき。登録不要。">
+<meta property="og:title" content="配偶者控除・配偶者特別控除はいくら？かんたん計算 2026（無料）">
+<meta property="og:description" content="自分と配偶者の年収を入れるだけで、控除の額と所得税の減る額の目安がわかります。">
+<meta property="og:image" content="https://mizbas.github.io/sora-tools/og-kabe.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css?v=mwxws8iu">
+<script src="app.js?v=mwxws8iu"></script>
+<style>
+.cta{display:block;text-align:center;text-decoration:none;font-weight:700;font-size:15px;color:#fff;background:var(--primary);border-radius:var(--r-md);padding:14px;margin:14px 0 6px}
+.cta2{display:block;text-align:center;text-decoration:none;font-weight:700;font-size:14px;color:var(--primary);border:1px solid #B9C7DD;background:#fff;border-radius:var(--r-md);padding:12px;margin:6px 0}
+.tb{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.tb th,.tb td{white-space:nowrap;padding:8px 5px;border-top:1px solid var(--line);text-align:right}.tb th{font-size:12px;color:var(--sub);font-weight:600;border-top:0}
+.tb td:first-child,.tb th:first-child{text-align:left}
+.tb tr.me td{background:var(--primary-soft);font-weight:700}
+.more{font-size:13.5px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="no-print"><a href="./index.html">ツール一覧</a></header>
+  <h1>配偶者控除・配偶者特別控除はいくら？かんたん計算 2026</h1>
+  <p class="lead">自分と配偶者の年収を入れるだけで、2026年分（令和8年分）の<b>配偶者控除・配偶者特別控除の額と、所得税がいくら減るか</b>の目安を出します。年末調整の「配偶者控除等申告書」を書く前の確認に。無料・登録不要です。</p>
+
+  <section class="card hero">
+    <div class="row"><span class="label" id="heroLabel">配偶者の控除</span></div>
+    <div class="big" id="heroAmt">-</div>
+    <div class="sub" id="heroSub"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="num">1</span>年収（額面の見込み）</h2>
+    <div class="field"><label for="self">自分の給与・賞与<small>交通費は除きます</small></label><input type="number" id="self" inputmode="numeric" placeholder="5000000"></div>
+    <div class="field"><label for="sp">配偶者の給与・賞与<small>パート・アルバイトの1年分（1〜12月）。給与以外の収入がない場合</small></label><input type="number" id="sp" inputmode="numeric" placeholder="1000000"></div>
+  </section>
+
+  <section class="card">
+    <h2>配偶者の年収ごとの早見表</h2>
+    <p class="note" style="margin:0 0 6px" id="tbNote"></p>
+    <table class="tb" id="tb"></table>
+  </section>
+
+  <section class="card">
+    <h2>もっと詳しく</h2>
+    <a class="cta" href="https://note.com/tmsora8496/n/nfd3142db6a53" target="_blank" rel="noopener">パートの手取りと「働き損」を時給から計算する（有料版）</a>
+    <p class="note" style="margin:0">年収の壁シミュレーターでは、配偶者控除に加えて社会保険（106万円・130万円の壁）や会社の家族手当も入れて、世帯の手取りがいちばん多くなる働き方がわかります。</p>
+    <a class="cta2" href="https://note.com/tmsora8496/n/n3b444a1d04a2" target="_blank" rel="noopener">年末調整の書類の書き方をナビする（有料版）</a>
+    <a class="cta2" href="kakutei-hantei.html">確定申告いる？いらない？判定（無料）</a>
+  </section>
+
+  <section class="card more">
+    <h2>きほん</h2>
+    <p style="margin:0 0 6px">配偶者の所得が少ないと、自分の所得から差し引ける額（控除）が増えて、所得税と住民税が減ります。配偶者の年収が一定を超えると「配偶者控除」から「配偶者特別控除」に変わり、年収が上がるほど少しずつ減っていきます。</p>
+    <p style="margin:0">自分の所得が多い（給与の年収がおよそ1,095万円超）と控除が減り、1,195万円を超えると受けられません。住民税も同じように減りますが、このツールでは所得税だけを計算しています。</p>
+  </section>
+
+  <p class="note">令和8年分の年末調整の計算（給与所得控除・配偶者控除の表）で計算しています。社会保険料は自分の年収の15%、ほかの控除はなしとしています。配偶者が70歳以上の場合や、給与以外の収入がある場合は額が変わります。</p>
+</div>
+
+<script>
+// 年末調整かんたんナビ 計算ロジック（令和8年分＝2026年分）
+// 出典：国税庁「令和8年分 年末調整のしかた」「保険料控除申告書」、タックスアンサーNo.1140・1490・1900
+(function (root) {
+  const floorTo = (x, u) => Math.floor(x / u + 1e-9) * u;
+  const ceilTo = (x, u) => Math.ceil(x / u - 1e-9) * u;
+  const n = v => { const x = Number(v); return isFinite(x) && x > 0 ? x : 0; };
+
+  function kyuyoShotoku(x) {
+    if (x <= 0) return 0;
+    // 年末調整の「給与所得控除後の給与等の金額の表」：220万円以上660万円未満は4千円単位で切り捨てて計算
+    if (x >= 2200000 && x < 6600000) x = floorTo(x, 4000);
+    const std = x <= 1800000 ? x * 0.4 - 100000 : x <= 3600000 ? x * 0.3 + 80000 : x <= 6600000 ? x * 0.2 + 440000
+      : x <= 8500000 ? x * 0.1 + 1100000 : 1950000;
+    return Math.max(0, x - Math.max(740000, std));
+  }
+  function incomeTaxBase(t) { // 所得税（復興特別所得税を含まない）
+    const b = [[1950000,0.05,0],[3300000,0.1,97500],[6950000,0.2,427500],[9000000,0.23,636000],[18000000,0.33,1536000],[40000000,0.4,2796000]];
+    for (const [lim, r, d] of b) if (t <= lim) return Math.max(0, t * r - d);
+    return t * 0.45 - 4796000;
+  }
+  function basicDeduction(total) {
+    if (total <= 4890000) return 1040000;
+    if (total <= 6550000) return 670000;
+    if (total <= 23500000) return 620000;
+    if (total <= 24000000) return 480000;
+    if (total <= 24500000) return 320000;
+    if (total <= 25000000) return 160000;
+    return 0;
+  }
+
+  // ---- 生命保険料控除（所得税）----
+  function newLife(p, big) { // big=23歳未満の扶養親族ありの一般生命保険料（上限6万円）
+    const k = big ? 1.5 : 1;
+    if (p <= 20000 * k) return p;
+    if (p <= 40000 * k) return p / 2 + 10000 * k;
+    if (p <= 80000 * k) return p / 4 + 20000 * k;
+    return 40000 * k;
+  }
+  function oldLife(p) {
+    if (p <= 25000) return p;
+    if (p <= 50000) return p / 2 + 12500;
+    if (p <= 100000) return p / 4 + 25000;
+    return 50000;
+  }
+  function lifeCategory(newP, oldP, cap) {
+    const a = Math.max(0, Math.ceil(newLife(newP, cap === 60000) - 1e-9));   // 1円未満切上げ
+    const b = Math.max(0, Math.ceil(oldLife(oldP) - 1e-9));
+    const sum = Math.min(a + b, cap);
+    // 旧契約だけで計算した額のほうが大きい場合はそちら（最高5万円）
+    return { newDed: a, oldDed: b, ded: Math.max(b, sum) };
+  }
+  function lifeInsurance(ins, under23) {
+    const ippan = lifeCategory(n(ins.ippanNew), n(ins.ippanOld), under23 && n(ins.ippanNew) > 0 ? 60000 : 40000);
+    const kaigo = { newDed: Math.max(0, Math.ceil(newLife(n(ins.kaigo), false) - 1e-9)), oldDed: 0 }; kaigo.ded = kaigo.newDed;
+    const nenkin = lifeCategory(n(ins.nenkinNew), n(ins.nenkinOld), 40000);
+    return { ippan, kaigo, nenkin, total: Math.min(120000, ippan.ded + kaigo.ded + nenkin.ded) };
+  }
+  // ---- 地震保険料控除 ----
+  function earthquake(ins) {
+    const e = Math.min(n(ins.jishin), 50000);
+    const o = n(ins.kyuChoki);
+    const l = o <= 10000 ? o : o <= 20000 ? Math.ceil(o / 2 + 5000) : 15000;
+    return { jishin: e, kyuChoki: l, total: Math.min(50000, e + l) };
+  }
+
+  // ---- 家族の判定 ----
+  function personIncome(x) { // 給与収入＋その他の所得 → 合計所得
+    return kyuyoShotoku(n(x.salary)) + n(x.otherIncome);
+  }
+  const SPOUSE_SPECIAL = [[950000,380000],[1000000,360000],[1050000,310000],[1100000,260000],[1150000,210000],[1200000,160000],[1250000,110000],[1300000,60000],[1330000,30000]];
+  function spouseDeduction(selfTotal, sp) {
+    if (!sp || !sp.has) return { kind: "none", amount: 0, income: 0 };
+    const inc = personIncome(sp);
+    if (selfTotal > 10000000) return { kind: "over", amount: 0, income: inc };
+    const f = selfTotal <= 9000000 ? 1 : selfTotal <= 9500000 ? 2 / 3 : 1 / 3;
+    if (inc <= 620000) {
+      const base = sp.age70 ? 480000 : 380000;
+      return { kind: "haigusha", amount: ceilTo(base * f, 10000), income: inc };
+    }
+    for (const [lim, v] of SPOUSE_SPECIAL) if (inc <= lim) return { kind: "tokubetsu", amount: ceilTo(v * f, 10000), income: inc };
+    return { kind: "none", amount: 0, income: inc };
+  }
+  const TOKUTEI_SHINZOKU = [[850000,630000],[900000,610000],[950000,510000],[1000000,410000],[1050000,310000],[1100000,210000],[1150000,110000],[1200000,60000],[1230000,30000]];
+  function dependent(d) {
+    const inc = personIncome(d);
+    const age = Number(d.age);
+    const res = { name: d.name || "", age, income: inc, kind: "none", amount: 0, under23: age < 23, disability: 0 };
+    if (inc <= 620000) {
+      if (age < 16) res.kind = "nensho";
+      else if (age >= 19 && age < 23) { res.kind = "tokutei"; res.amount = 630000; }
+      else if (age >= 70) { res.kind = d.livingWithParent ? "rojin-dokyo" : "rojin"; res.amount = d.livingWithParent ? 580000 : 480000; }
+      else { res.kind = "ippan"; res.amount = 380000; }
+      if (d.disability === "general") res.disability = 270000;
+      if (d.disability === "special") res.disability = d.livingTogether ? 750000 : 400000;
+    } else if (age >= 19 && age < 23) {
+      for (const [lim, v] of TOKUTEI_SHINZOKU) if (inc <= lim) { res.kind = "tokutei-shinzoku"; res.amount = v; break; }
+      if (res.kind === "none") res.kind = "over";
+    } else res.kind = "over";
+    return res;
+  }
+
+  // ---- 一時所得（競艇・競馬などの払戻金ほか）----
+  function ichiji(o) {
+    const income = n(o.boatPayout) + n(o.otherIchijiIncome);
+    const cost = n(o.boatWinCost) + n(o.otherIchijiCost);
+    const amount = Math.max(0, income - cost - Math.min(500000, Math.max(0, income - cost)));
+    return { income, cost, amount, half: Math.floor(amount / 2) };
+  }
+
+  function nenchoTax(taxable) {
+    return floorTo(incomeTaxBase(floorTo(Math.max(0, taxable), 1000)) * 1.021, 100);
+  }
+
+  function compute(s) {
+    const salary = n(s.salary);
+    const dependents = (s.dependents || []).filter(d => d && (d.age !== "" && d.age != null));
+    const deps = dependents.map(dependent);
+    // 年齢23歳未満の扶養親族（所得62万円以下。16歳未満の年少扶養親族も含む）
+    const under23 = deps.some(d => d.age < 23 && d.income <= 620000);
+    // 所得金額調整控除（子ども・特別障害者等）
+    const adjEligible = salary > 8500000 && (under23 || s.selfSpecialDisabled || deps.some(d => d.disability && d.disability === "special"));
+    const adjust = adjEligible ? Math.min(150000, Math.ceil((Math.min(salary, 10000000) - 8500000) * 0.1)) : 0;
+    const kyuyo = Math.max(0, kyuyoShotoku(salary) - adjust);
+    const ich = ichiji(s.other || {});
+    const zatsu = n((s.other || {}).zatsu);
+    const otherTotal = ich.half + zatsu;
+    const totalAll = kyuyo + otherTotal;       // 合計所得（給与以外の所得を含む）
+    const totalNencho = totalAll;
+
+    const ins = s.insurance || {};
+    const life = lifeInsurance(ins, under23);
+    const eq = earthquake(ins);
+    const shaho = n(s.socialInsurance) + n(ins.shahoExtra);
+    const shokibo = n(ins.ideco);
+
+    const selfDis = s.selfDisability === "special" ? 400000 : s.selfDisability === "general" ? 270000 : 0;
+    const status = s.selfStatus === "hitorioya" ? 350000 : s.selfStatus === "kafu" ? 270000 : 0;
+    const student = s.selfStudent && totalAll <= 890000 ? 270000 : 0;
+
+    function deductionsFor(total) {
+      const sp = spouseDeduction(total, s.spouse);
+      const spDis = s.spouse && s.spouse.has && sp.income <= 620000 ? (s.spouse.disability === "special" ? (s.spouse.livingTogether !== false ? 750000 : 400000) : s.spouse.disability === "general" ? 270000 : 0) : 0;
+      const fuyo = deps.reduce((a, d) => a + (d.kind !== "tokutei-shinzoku" ? d.amount : 0), 0);
+      const tokutei = deps.reduce((a, d) => a + (d.kind === "tokutei-shinzoku" ? d.amount : 0), 0);
+      const depDis = deps.reduce((a, d) => a + d.disability, 0);
+      const basic = basicDeduction(total);
+      const sum = shaho + shokibo + life.total + eq.total + selfDis + status + student + spDis + depDis + sp.amount + fuyo + tokutei + basic;
+      return { sp, spDis, fuyo, tokutei, depDis, basic, sum };
+    }
+    const dN = deductionsFor(totalAll);   // 申告書の「合計所得金額の見積額」は給与以外の所得も含む
+    const housing = n(s.housingLoan);
+    const taxNenchoBefore = nenchoTax(kyuyo - dN.sum);
+    const taxNencho = Math.max(0, floorTo((incomeTaxBase(floorTo(Math.max(0, kyuyo - dN.sum), 1000)) - housing) * 1.021, 100));
+    const withheld = n(s.withheld);
+
+    const dA = deductionsFor(totalAll);
+    const taxAll = Math.max(0, floorTo((incomeTaxBase(floorTo(Math.max(0, totalAll - dA.sum), 1000)) - housing) * 1.021, 100));
+    const filingRequired = salary <= 20000000 ? otherTotal > 200000 : true;
+    const residentExtra = Math.round(Math.max(0, otherTotal) * 0.1);
+
+    return {
+      salary, adjust, kyuyo, totalNencho, totalAll, under23, deps, life, eq, shaho, shokibo, selfDis, status, student,
+      nencho: dN, all: dA, housing, taxNencho, taxNenchoBefore, withheld, refund: withheld ? withheld - taxNencho : null,
+      ichiji: ich, zatsu, otherTotal, taxAll, extraTax: Math.max(0, taxAll - taxNencho), filingRequired, residentExtra,
+    };
+  }
+
+  const api = { compute, kyuyoShotoku, newLife, oldLife, lifeInsurance, earthquake, spouseDeduction, dependent, ichiji, basicDeduction, nenchoTax, incomeTaxBaseExport: incomeTaxBase };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.NenchoCalc = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
+(function () {
+  const $ = id => document.getElementById(id);
+  const N = window.NenchoCalc, KEY = "sora.haigusha-kantan.2026";
+  let S = { self: 5000000, sp: 1000000 };
+  try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+  const yen = v => Math.round(v).toLocaleString("ja-JP") + "円";
+  const man = v => (v / 10000).toLocaleString("ja-JP") + "万円";
+  const taxOf = (self, sp) => N.compute({ salary: self, socialInsurance: Math.round(self * 0.15), spouse: sp == null ? { has: "" } : { has: "1", salary: sp } });
+  function update() {
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    const self = Math.max(0, +S.self || 0), sp = Math.max(0, +S.sp || 0);
+    if (self < 1000000) { $("heroAmt").textContent = "-"; $("heroSub").textContent = "自分の年収を入れてください"; $("tb").innerHTML = ""; return; }
+    const a = taxOf(self, sp), b = taxOf(self, null), d = a.nencho.sp;
+    const cut = Math.max(0, b.taxNencho - a.taxNencho);
+    $("heroLabel").textContent = d.kind === "haigusha" ? "配偶者控除" : d.kind === "tokubetsu" ? "配偶者特別控除" : "配偶者の控除";
+    if (d.amount > 0) { $("heroAmt").textContent = yen(d.amount); $("heroSub").innerHTML = `所得税が年に約<b>${yen(cut)}</b>減る目安です（住民税も別に減ります）。`; }
+    else { $("heroAmt").textContent = "0円"; $("heroSub").textContent = d.kind === "over" ? "自分の所得が1,000万円を超えるため、配偶者の控除は受けられません。" : "配偶者の年収が多いため、控除はありません。"; }
+    // 早見表：配偶者の給与収入の区切り（給与所得控除74万円を足した額）
+    const lims = [620000, 950000, 1000000, 1050000, 1100000, 1150000, 1200000, 1250000, 1300000, 1330000];
+    let prev = 0, rows = "";
+    for (const L of lims) {
+      const hi = L + 740000, x = taxOf(self, hi), dd = x.nencho.sp, c = Math.max(0, b.taxNencho - x.taxNencho);
+      const me = sp > prev && sp <= hi || (prev === 0 && sp <= hi);
+      rows += `<tr class="${me ? "me" : ""}"><td>${prev ? man(prev) + "超〜" : "〜"}${man(hi)}</td><td>${dd.kind === "haigusha" ? "配偶者" : dd.kind === "tokubetsu" ? "特別" : "-"}</td><td>${man(dd.amount)}</td><td>${yen(c)}</td></tr>`;
+      prev = hi;
+    }
+    rows += `<tr class="${sp > prev ? "me" : ""}"><td>${man(prev)}超</td><td>-</td><td>0</td><td>0円</td></tr>`;
+    $("tb").innerHTML = `<tr><th>配偶者の年収</th><th>控除</th><th>控除の額</th><th>所得税が減る</th></tr>` + rows;
+    $("tbNote").textContent = `自分の年収が${man(Math.round(self / 10000) * 10000)}の場合。色がついた行が今の配偶者の年収です。`;
+  }
+  ["self", "sp"].forEach(k => { $(k).value = S[k] || (k === "sp" ? 0 : ""); $(k).addEventListener("input", e => { S[k] = Number(e.target.value) || 0; update(); }); });
+  update();
+})();
+</script>
+</body>
+</html>
