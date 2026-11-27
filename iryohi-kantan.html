@@ -10,8 +10,8 @@
 <meta property="og:description" content="年収と医療費を入れるだけで、戻るお金の目安がわかります。">
 <meta property="og:image" content="https://mizbas.github.io/sora-tools/og-hub.png">
 <link rel="icon" href="icon-192.png">
-<link rel="stylesheet" href="app.css?v=mwy7wcr3">
-<script src="app.js?v=mwy7wcr3"></script>
+<link rel="stylesheet" href="app.css?v=mwyd9w6z">
+<script src="app.js?v=mwyd9w6z"></script>
 <style>
 .cta{display:block;text-align:center;text-decoration:none;font-weight:700;font-size:15px;color:#fff;background:var(--primary);border-radius:var(--r-md);padding:14px;margin:14px 0 6px}
 .cta2{display:block;text-align:center;text-decoration:none;font-weight:700;font-size:14px;color:var(--primary);border:1px solid #B9C7DD;background:#fff;border-radius:var(--r-md);padding:12px;margin:6px 0}
@@ -418,7 +418,22 @@
     };
   }
 
-  const api = { compute, specialRate, incomeTaxRate, adjustmentCredit, lifeInsuranceR, earthquakeR, personalR };
+  // 返礼品さがしの金額：寄附済みがあれば残り枠、なければ上限の9割（どちらも千円単位で切り捨て）
+  function shopAmount(r) {
+    if (!r || r.limit <= 0) return 0;
+    const base = r.donated > 0 ? r.remaining : r.limit * 0.9;
+    const v = Math.floor(base / 1000) * 1000;
+    return v >= 1000 ? v : 0;
+  }
+  // 楽天アフィリエイトのリンク（ふるさと納税の検索を寄附額の上限で絞り込み）
+  const RAKUTEN_AF_ID = "55a2dfd6.c05bdd82.55a2dfd7.6d81d5f3";
+  function rakutenFurusatoUrl(amount) {
+    const dest = "https://search.rakuten.co.jp/search/mall/" + encodeURIComponent("ふるさと納税") + "/?max=" + amount;
+    const e = encodeURIComponent(dest);
+    return "https://hb.afl.rakuten.co.jp/hgc/" + RAKUTEN_AF_ID + "/?pc=" + e + "&m=" + e;
+  }
+
+  const api = { compute, specialRate, incomeTaxRate, adjustmentCredit, lifeInsuranceR, earthquakeR, personalR, shopAmount, rakutenFurusatoUrl };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.FurusatoCalc = api;
 })(typeof window !== "undefined" ? window : globalThis);
 

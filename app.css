@@ -132,3 +132,10 @@ tr.em td:last-child{color:var(--primary)}
 .bigview td{font-size:14px;padding:8px 0}
 .bigview .close{position:sticky;top:0;float:right;font:inherit;font-size:15px;font-weight:600;border:0;background:none;color:var(--primary);padding:4px 0}
 html,body{overflow-x:clip}
+
+/* 楽天ふるさと納税への広告リンク */
+.shop{margin:14px 0 2px;padding:12px;border:1px solid var(--line);border-radius:var(--r-md);background:#fff}
+.shop-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:var(--sub);margin-bottom:8px}
+.shop .pr{font-size:11px;font-weight:700;color:var(--sub);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+.shop-btn{display:block;text-align:center;text-decoration:none;line-height:1.5;background:#BF0000}
+.shop-btn:active{background:#9a0000}

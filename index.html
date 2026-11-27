@@ -9,7 +9,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="app.css?v=mwy7wcr3">
+<link rel="stylesheet" href="app.css?v=mwyd9w6z">
 <style>
 .bar{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.94);-webkit-backdrop-filter:saturate(180%) blur(12px);backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 10px) 0 10px}
 .bar .in{max-width:600px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:10px}
@@ -122,7 +122,7 @@
   </div>
 </div>
 
-<script src="crypto.js?v=mwy7wcr3"></script>
+<script src="crypto.js?v=mwyd9w6z"></script>
 <script>
 const CATALOG = [{"id":"nenshu-kabe","status":"live","free":true,"cat":"tax","icon":"🧱","title":"年収の壁シミュレーター 2026","desc":"時給と週の労働時間から、本人と世帯の手取りを計算。扶養内の最大・働き損ゾーン・壁を越えて元が取れる時間がひと目でわかります。","tags":["パート・共働き","2026年10月の社保改正対応"],"price":"500円","note":"https://note.com/tmsora8496/n/nfd3142db6a53"},{"id":"nencho","status":"live","free":true,"cat":"tax","icon":"🧾","title":"年末調整かんたんナビ 2026","desc":"保険料控除申告書・配偶者控除等申告書の「どの欄に何円書くか」を自動計算。競艇・競馬の払戻金があるときの確定申告の要否と増える税額もわかります。","tags":["会社員","令和8年分対応","競艇・競馬の払戻金"],"price":"500円","note":"https://note.com/tmsora8496/n/n3b444a1d04a2"},{"id":"furusato","status":"live","free":true,"cat":"tax","icon":"🎁","title":"ふるさと納税 上限額シミュレーター 2026","desc":"給与明細の数字から、2026年の寄附の上限を計算。住宅ローン控除・医療費控除・iDeCoとの兼ね合いや、ワンストップ特例と確定申告で自己負担がどう変わるかまでわかります。","tags":["会社員","2026年の寄附","年末調整ナビから読込"],"price":"500円","note":"https://note.com/tmsora8496/n/n653d866d4e31"},{"id":"kabu-manabu","status":"live","cat":"invest","icon":"","title":"株の見方トレーニング","desc":"チャートと決算の読み方を、手を動かして身につける教材。8つのレッスン、ランダムなチャートを読むドリル、自分の銘柄のCSVでの練習、決算チェック、損切りと株数の計算まで。","tags":["株の初心者","チャートの見方","決算の読み方"],"price":"500円","note":"https://note.com/tmsora8496/n/ncf9043944305"},{"id":"sheet-haito","status":"live","kind":"sheet","cat":"invest","icon":"📊","title":"資産と配当の管理シート（日本株・米国株）","desc":"銘柄コード・株数・取得単価の3つを入れると、評価額・損益・予想配当金を表示します。月別の配当予定と、業種別の割合のグラフも見られるGoogleスプレッドシートです。","tags":["Googleスプレッドシート","日本株・米国株・ETF","配当の管理"],"price":"500円","note":"https://note.com/tmsora8496/n/nf25b313a7580"},{"id":"sheet-pf","status":"live","kind":"sheet","cat":"invest","icon":"📈","title":"ポートフォリオ管理シート（日本株・米国株）","desc":"銘柄コード・株数・取得単価を入れると、株価を取り込んで円換算の評価額と損益を計算します。総資産と損益はダッシュボードでまとめて確認できるGoogleスプレッドシートです。","tags":["Googleスプレッドシート","日本株・米国株・ETF","ドル円も自動"],"price":"500円","note":"https://note.com/tmsora8496/n/nacf0eb181d6d"},{"id":"iryohi","status":"live","free":true,"cat":"tax","icon":"💊","title":"医療費控除 vs セルフメディケーション 比較 2026","desc":"1年分の医療費と市販薬の代から、通常の医療費控除とセルフメディケーション税制のどちらが得か、所得税がいくら戻り住民税がいくら減るかを計算。家族の合算や高額療養費・保険金の差し引きにも対応。","tags":["会社員","令和8年分の確定申告","家族の医療費を合算"],"price":"500円","note":"https://note.com/tmsora8496/n/n20281515c85c"},{"id":"subsc","status":"retired","cat":"life","icon":"📅","title":"サブスク管理","desc":"契約中のサブスクを登録すると、毎月・毎年の合計、次の請求日、無料期間が終わる日がひと目でわかります。請求日をスマホのカレンダーに登録でき、使っていないものの「やめると浮く金額」も出ます。","tags":["登録不要","カレンダー通知","家族と共有"],"price":"500円","note":"https://note.com/tmsora8496/n/nd5bffc99165f"},{"id":"kakeibo","status":"live","cat":"life","icon":"👛","title":"わが家の家計簿","desc":"レシートのように品目ごとに入力して、月の支出・予算の残り・カテゴリ別の使い方がひと目でわかる家計簿。Googleドライブで家族のスマホと同期でき、銀行・カードの明細CSVも取り込めます。","tags":["家族で同期","登録不要","明細CSV取込"],"price":"1,000円","note":"https://note.com/tmsora8496/n/n76c5e7c5bfd1","demo":"kakeibo-demo.html"},{"id":"prompt","status":"live","cat":"work","icon":"💬","title":"短いプロンプトメーカー","desc":"やりたいことを一言書くだけで、AIに「プロンプトを作って」と頼む短い一文を作ります。質問しながら作ってもらう頼み方や、「推測しない」「表で出す」などの決まりも選ぶだけ。別のパソコンに手で打ち写すときにも困らない短さです。","tags":["AIの使い方","仕事にも勉強にも","登録不要"],"price":"100円","note":"https://note.com/tmsora8496/n/naedb0a576eb3"},{"id":"kondate","status":"retired","cat":"life","icon":"🍳","title":"週の献立帳","desc":"1週間の献立をおまかせで決めて、買い物リストまで自動でまとめる献立アプリ（テスト中）。","tags":["家族で同期","登録不要"],"price":""}];
 const SITE = {"salt":"b8j/k89hxRTcldfUHYJOqA==","iter":200000};
@@ -180,7 +180,7 @@ async function loadFiles() {
   if (files) return files;
   files = {};
   for (const t of CATALOG.filter(t => (t.status === "live" || t.status === "retired") && isTool(t))) {
-    files[t.id] = await (await fetch("tools/" + t.id + ".json?v=mwy7wcr3")).json();
+    files[t.id] = await (await fetch("tools/" + t.id + ".json?v=mwyd9w6z")).json();
   }
   return files;
 }

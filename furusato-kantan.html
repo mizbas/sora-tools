@@ -10,8 +10,8 @@
 <meta property="og:description" content="年収と家族構成を選ぶだけで、2026年のふるさと納税の上限の目安がわかります。">
 <meta property="og:image" content="https://mizbas.github.io/sora-tools/og-furusato.png">
 <link rel="icon" href="icon-192.png">
-<link rel="stylesheet" href="app.css?v=mwy7wcr3">
-<script src="app.js?v=mwy7wcr3"></script>
+<link rel="stylesheet" href="app.css?v=mwyd9w6z">
+<script src="app.js?v=mwyd9w6z"></script>
 <style>
 .stepper{display:flex;align-items:center;gap:10px}
 .stepper button{flex:none;width:44px;height:44px;border-radius:var(--r-sm);border:1px solid var(--line);background:#fff;font:inherit;font-size:20px;font-weight:700;color:var(--primary);cursor:pointer}
@@ -31,6 +31,7 @@
     <div class="row"><span class="label">2026年の寄附の上限（目安）</span></div>
     <div class="big" id="heroLimit">-</div>
     <div class="sub" id="heroSub"></div>
+    <div id="shop"></div>
   </section>
 
   <section class="card">
@@ -407,7 +408,22 @@
     };
   }
 
-  const api = { compute, specialRate, incomeTaxRate, adjustmentCredit, lifeInsuranceR, earthquakeR, personalR };
+  // 返礼品さがしの金額：寄附済みがあれば残り枠、なければ上限の9割（どちらも千円単位で切り捨て）
+  function shopAmount(r) {
+    if (!r || r.limit <= 0) return 0;
+    const base = r.donated > 0 ? r.remaining : r.limit * 0.9;
+    const v = Math.floor(base / 1000) * 1000;
+    return v >= 1000 ? v : 0;
+  }
+  // 楽天アフィリエイトのリンク（ふるさと納税の検索を寄附額の上限で絞り込み）
+  const RAKUTEN_AF_ID = "55a2dfd6.c05bdd82.55a2dfd7.6d81d5f3";
+  function rakutenFurusatoUrl(amount) {
+    const dest = "https://search.rakuten.co.jp/search/mall/" + encodeURIComponent("ふるさと納税") + "/?max=" + amount;
+    const e = encodeURIComponent(dest);
+    return "https://hb.afl.rakuten.co.jp/hgc/" + RAKUTEN_AF_ID + "/?pc=" + e + "&m=" + e;
+  }
+
+  const api = { compute, specialRate, incomeTaxRate, adjustmentCredit, lifeInsuranceR, earthquakeR, personalR, shopAmount, rakutenFurusatoUrl };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.FurusatoCalc = api;
 })(typeof window !== "undefined" ? window : globalThis);
 
@@ -426,6 +442,7 @@
   function update() {
     try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
     const sal = Math.max(0, Number(S.salary) || 0);
+    $("shop").innerHTML = "";
     if (sal < 1000000) { $("heroLimit").textContent = "-"; $("heroSub").textContent = "年収を入れてください（100万円以上）"; return; }
     const deps = [];
     for (let i = 0; i < S.c19; i++) deps.push({ age: 20 });
@@ -435,6 +452,10 @@
     if (!(lim > 2000)) { $("heroLimit").textContent = "0円"; $("heroSub").textContent = "住民税の所得割がかからないため、ふるさと納税で税金は減りません。"; return; }
     $("heroLimit").textContent = "約" + yen(lim) + "円";
     $("heroSub").innerHTML = "12月の給与・賞与が見込みと違いそうなら、<b>" + yen(Math.floor(lim * 0.9 / 1000) * 1000) + "円</b>くらいまでにしておくと安全です。";
+    const shop = FurusatoCalc.shopAmount(r);
+    if (shop > 0) $("shop").innerHTML = '<div class="shop"><div class="shop-head"><span>安全な目安で選ぶ</span><span class="pr">PR</span></div>'
+      + '<a class="btn shop-btn" href="' + FurusatoCalc.rakutenFurusatoUrl(shop) + '" target="_blank" rel="sponsored noopener">' + yen(shop) + '円以内の返礼品を<br>楽天ふるさと納税で探す</a>'
+      + '<p class="note" style="margin:6px 0 0">楽天アフィリエイトの広告リンクです。楽天市場の検索結果（寄附額' + yen(shop) + '円以下）が開きます。</p></div>';
   }
   $("salary").addEventListener("input", e => { S.salary = Number(e.target.value) || 0; update(); });
   document.querySelectorAll("#spouse button").forEach(b => b.onclick = () => { S.spouse = b.dataset.v; paint(); update(); });
