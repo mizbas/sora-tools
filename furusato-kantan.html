@@ -10,8 +10,8 @@
 <meta property="og:description" content="年収と家族構成を選ぶだけで、2026年のふるさと納税の上限の目安がわかります。">
 <meta property="og:image" content="https://mizbas.github.io/sora-tools/og-furusato.png">
 <link rel="icon" href="icon-192.png">
-<link rel="stylesheet" href="app.css?v=mwyd9w6z">
-<script src="app.js?v=mwyd9w6z"></script>
+<link rel="stylesheet" href="app.css?v=mwydemed">
+<script src="app.js?v=mwydemed"></script>
 <style>
 .stepper{display:flex;align-items:center;gap:10px}
 .stepper button{flex:none;width:44px;height:44px;border-radius:var(--r-sm);border:1px solid var(--line);background:#fff;font:inherit;font-size:20px;font-weight:700;color:var(--primary);cursor:pointer}
@@ -31,7 +31,6 @@
     <div class="row"><span class="label">2026年の寄附の上限（目安）</span></div>
     <div class="big" id="heroLimit">-</div>
     <div class="sub" id="heroSub"></div>
-    <div id="shop"></div>
   </section>
 
   <section class="card">
@@ -45,6 +44,8 @@
     <div class="field"><label>扶養している19〜22歳の子ども<small>大学生など</small></label><div class="stepper" data-key="c19"><button type="button" data-d="-1" aria-label="減らす">−</button><output>0</output><button type="button" data-d="1" aria-label="増やす">＋</button></div></div>
     <div class="field"><label>扶養している16〜18歳の子ども<small>高校生など。15歳以下の子どもは上限に影響しません</small></label><div class="stepper" data-key="c16"><button type="button" data-d="-1" aria-label="減らす">−</button><output>0</output><button type="button" data-d="1" aria-label="増やす">＋</button></div></div>
   </section>
+
+  <div id="shop"></div>
 
   <section class="card">
     <h2>この目安に入っていないもの</h2>
@@ -453,7 +454,7 @@
     $("heroLimit").textContent = "約" + yen(lim) + "円";
     $("heroSub").innerHTML = "12月の給与・賞与が見込みと違いそうなら、<b>" + yen(Math.floor(lim * 0.9 / 1000) * 1000) + "円</b>くらいまでにしておくと安全です。";
     const shop = FurusatoCalc.shopAmount(r);
-    if (shop > 0) $("shop").innerHTML = '<div class="shop"><div class="shop-head"><span>安全な目安で選ぶ</span><span class="pr">PR</span></div>'
+    if (shop > 0) $("shop").innerHTML = '<div class="shop shop-card"><div class="shop-head"><span>安全な目安で選ぶ</span><span class="pr">PR</span></div>'
       + '<a class="btn shop-btn" href="' + FurusatoCalc.rakutenFurusatoUrl(shop) + '" target="_blank" rel="sponsored noopener">' + yen(shop) + '円以内の返礼品を<br>楽天ふるさと納税で探す</a>'
       + '<p class="note" style="margin:6px 0 0">楽天アフィリエイトの広告リンクです。楽天市場の検索結果（寄附額' + yen(shop) + '円以下）が開きます。</p></div>';
   }

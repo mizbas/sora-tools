@@ -139,3 +139,4 @@ html,body{overflow-x:clip}
 .shop .pr{font-size:11px;font-weight:700;color:var(--sub);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
 .shop-btn{display:block;text-align:center;text-decoration:none;line-height:1.5;background:#BF0000}
 .shop-btn:active{background:#9a0000}
+.shop.shop-card{margin:12px 0;padding:16px;border-radius:var(--r-lg)}
